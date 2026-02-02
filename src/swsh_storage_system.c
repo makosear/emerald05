@@ -45,7 +45,7 @@
 #include "constants/pokemon_icon.h"
 #include "constants/pokemon_storage_system.h"
 
-#if !SWSH_STORAGE_SYSTEM
+#if SWSH_STORAGE_SYSTEM
 /*
     NOTE: This file is large. Some general groups of functions have
           been labeled with commented headers to make navigation easier.
@@ -1628,6 +1628,7 @@ static void Task_PCMainMenu(u8 taskId)
 
 void ShowPokemonStorageSystemPC(void)
 {
+    PlaySE(SE_PIN); // TODO: Remove this
     u8 taskId = CreateTask(Task_PCMainMenu, 80);
     gTasks[taskId].tState = 0;
     gTasks[taskId].tSelectedOption = 0;
