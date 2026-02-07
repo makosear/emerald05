@@ -241,6 +241,7 @@ enum {
     PALTAG_MISC_1,
     PALTAG_MARKING_COMBO,
     PALTAG_BOX_TITLE,
+    PALTAG_BOX_TITLE_FRAME,
     PALTAG_MISC_2,
     PALTAG_ITEM_ICON_0,
     PALTAG_ITEM_ICON_1, // Used implicitly in CreateItemIconSprites
@@ -253,7 +254,8 @@ enum {
     GFXTAG_CURSOR_SHADOW,
     GFXTAG_DISPLAY_MON,
     GFXTAG_BOX_TITLE,
-    GFXTAG_BOX_TITLE_ALT,
+    GFXTAG_BOX_TITLE_FRAME,
+    GFXTAG_BOX_TITLE_ARROW,
     GFXTAG_WAVEFORM,
     GFXTAG_ARROW,
     GFXTAG_ITEM_ICON_0,
@@ -423,6 +425,7 @@ struct PokemonStorageSystemData
     u16 boxTitleAltPalOffset;
     struct Sprite *curBoxTitleSprites[2];
     struct Sprite *nextBoxTitleSprites[2];
+    struct Sprite *boxTitleFrameSprites[7];
     struct Sprite *arrowSprites[2];
     u32 wallpaperPalBits;
     s16 wallpaperSetId;
@@ -757,6 +760,7 @@ static bool8 IsCursorOnBoxTitle(void);
 
 // Box name & Scroll arrows
 static void CreateBoxScrollArrows(void);
+static void AnimateBoxScrollArrow(s8);
 static void UpdateBoxTitle(u8);
 static void UNUSED StartBoxScrollArrowsSlide(s8);
 static void UNUSED StopBoxScrollArrowsSlide(void);
@@ -816,10 +820,10 @@ static void ClearBottomWindow(void);
 static void InitSupplementalTilemaps(void);
 static void PrintDisplayMonInfo(void);
 static void UNUSED UpdateWaveformAnimation(void);
-static void SetPartySlotTilemaps(void);
+// static void SetPartySlotTilemaps(void);
 static void StopFlashingCloseBoxButton(void);
 static void FreePokeStorageData(void);
-static void UpdatePartySlotColors(void);
+// static void UpdatePartySlotColors(void);
 static void StartFlashingCloseBoxButton(void);
 static void SetUpDoShowPartyMenu(void);
 static void StartDisplayMonMosaicEffect(void);
@@ -832,7 +836,7 @@ static void UpdateCloseBoxButtonTilemap(bool8);
 static void PrintMessage(u8 id);
 static void LoadDisplayMonGfx(u16, u32);
 static void SpriteCB_DisplayMonMosaic(struct Sprite *);
-static void SetPartySlotTilemap(u8, bool8);
+// static void SetPartySlotTilemap(u8, bool8);
 
 // Tilemap utility
 static void TilemapUtil_SetRect(u8, u16, u16, u16, u16);
@@ -933,12 +937,16 @@ static const u16 sPkmnData_Tilemap[]         = INCBIN_U16("graphics/pokemon_stor
 static const u16 sInterface_Pal[]            = INCBIN_U16("graphics/pokemon_storage/interface.gbapal");
 static const u16 sPkmnDataGray_Pal[]         = INCBIN_U16("graphics/pokemon_storage/pkmn_data_gray.gbapal");
 static const u16 sCloseBoxButton_Tilemap[]   = INCBIN_U16("graphics/pokemon_storage/close_box_button.bin");
-static const u16 sPartySlotFilled_Tilemap[]  = INCBIN_U16("graphics/pokemon_storage/party_slot_filled.bin");
-static const u16 sPartySlotEmpty_Tilemap[]   = INCBIN_U16("graphics/pokemon_storage/party_slot_empty.bin");
+// static const u16 sPartySlotFilled_Tilemap[]  = INCBIN_U16("graphics/pokemon_storage/party_slot_filled.bin");
+// static const u16 sPartySlotEmpty_Tilemap[]   = INCBIN_U16("graphics/pokemon_storage/party_slot_empty.bin");
 static const u16 sWaveform_Pal[]             = INCBIN_U16("graphics/pokemon_storage/waveform.gbapal");
 static const u32 sWaveform_Gfx[]             = INCBIN_U32("graphics/pokemon_storage/waveform.4bpp");
 static const u16 sUnused_Pal[]               = INCBIN_U16("graphics/pokemon_storage/unused.gbapal");
 static const u16 sTextWindows_Pal[]          = INCBIN_U16("graphics/pokemon_storage/text_windows.gbapal");
+
+static const u32 sBoxTitleFrame_Gfx[]             = INCBIN_U32("graphics/pokemon_storage/swsh/box_title_frame.4bpp.smol");
+static const u16 sBoxTitleFrame_Pal[]             = INCBIN_U16("graphics/pokemon_storage/swsh/box_title_frame.gbapal");
+static const u32 sBoxTitleArrow_Gfx[]             = INCBIN_U32("graphics/pokemon_storage/swsh/box_title_arrow.4bpp.smol");
 
 static const struct WindowTemplate sWindowTemplates[] =
 {
@@ -987,7 +995,7 @@ static const struct BgTemplate sBgTemplates[] =
     },
     {
         .bg = 1,
-        .charBaseIndex = 1,
+        .charBaseIndex = 2,
         .mapBaseIndex = 30,
         .screenSize = 0,
         .paletteMode = 0,
@@ -996,7 +1004,7 @@ static const struct BgTemplate sBgTemplates[] =
     },
     {
         .bg = 2,
-        .charBaseIndex = 1,
+        .charBaseIndex = 2,
         .mapBaseIndex = 27,
         .screenSize = 1,
         .paletteMode = 0,
@@ -1017,6 +1025,66 @@ static const struct BgTemplate sBgTemplates[] =
 static const struct SpritePalette sWaveformSpritePalette =
 {
     sWaveform_Pal, PALTAG_MISC_2
+};
+
+static const struct OamData sOamData_BoxTitleFrame =
+{
+    .y = 0,
+    .affineMode = ST_OAM_AFFINE_OFF,
+    .objMode = ST_OAM_OBJ_NORMAL,
+    .mosaic = FALSE,
+    .bpp = ST_OAM_4BPP,
+    .size = SPRITE_SIZE(16x16),
+    .x = 0,
+    .matrixNum = 0,
+    .shape = SPRITE_SHAPE(16x16),
+    .tileNum = 0,
+    .priority = 0,
+    .paletteNum = 0,
+    .affineParam = 0,
+};
+
+static const union AnimCmd sSpriteAnim_BoxTitleFrameLeft[] = {
+    ANIMCMD_FRAME(0, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+static const union AnimCmd sSpriteAnim_BoxTitleFrameMiddle[] = {
+    ANIMCMD_FRAME(4, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+static const union AnimCmd sSpriteAnim_BoxTitleFrameRight[] = {
+    ANIMCMD_FRAME(0, 0, TRUE, FALSE),
+    ANIMCMD_END
+};
+
+static const union AnimCmd *const sSpriteAnimTable_BoxTitleFrame[] = {
+    sSpriteAnim_BoxTitleFrameLeft,
+    sSpriteAnim_BoxTitleFrameMiddle,
+    sSpriteAnim_BoxTitleFrameRight,
+};
+
+static const struct CompressedSpriteSheet sSpriteSheet_BoxTitleFrame =
+{
+    .data = sBoxTitleFrame_Gfx,
+    .size = (16 * 16 * 2) / 2,
+    .tag = GFXTAG_BOX_TITLE_FRAME,
+};
+
+static const struct SpritePalette sSpritePal_BoxTitleFrame =
+{
+    .data = sBoxTitleFrame_Pal,
+    .tag = PALTAG_BOX_TITLE_FRAME,
+};
+
+static const struct SpriteTemplate sSpriteTemplate_BoxTitleFrame =
+{
+    .tileTag = GFXTAG_BOX_TITLE_FRAME,
+    .paletteTag = PALTAG_BOX_TITLE_FRAME,
+    .oam = &sOamData_BoxTitleFrame,
+    .anims = sSpriteAnimTable_BoxTitleFrame,
+    .images = NULL,
+    .affineAnims = gDummySpriteAffineAnimTable,
+    .callback = SpriteCallbackDummy,
 };
 
 static const struct SpriteSheet sSpriteSheet_Waveform =
@@ -1218,6 +1286,13 @@ static const union AffineAnimCmd *const sAffineAnims_ReleaseMon[] =
 
 static const u16 sUnusedColor = RGB(26, 29, 8);
 
+#define BOX_TITLE_SHADOW_HOVER     RGB(7, 7, 7)
+#define BOX_TITLE_TEXT_HOVER       RGB_WHITE
+#define BOX_TITLE_FRAME_HOVER      RGB_BLACK
+#define BOX_TITLE_SHADOW_MAIN      RGB(26, 26, 25)
+#define BOX_TITLE_TEXT_MAIN        RGB_BLACK
+#define BOX_TITLE_FRAME_MAIN       RGB_WHITE
+
 static const struct SpriteSheet sSpriteSheet_Arrow = {sArrow_Gfx, sizeof(sArrow_Gfx), GFXTAG_ARROW};
 
 static const struct OamData sOamData_BoxTitle =
@@ -1255,6 +1330,57 @@ static const struct SpriteTemplate sSpriteTemplate_BoxTitle =
     .affineAnims = gDummySpriteAffineAnimTable,
     .callback = SpriteCallbackDummy
 };
+
+static const struct OamData sOamData_BoxTitleArrow =
+{
+    .y = 0,
+    .affineMode = ST_OAM_AFFINE_OFF,
+    .objMode = ST_OAM_OBJ_NORMAL,
+    .mosaic = FALSE,
+    .bpp = ST_OAM_4BPP,
+    .size = SPRITE_SIZE(8x8),
+    .x = 0,
+    .matrixNum = 0,
+    .shape = SPRITE_SHAPE(8x8),
+    .tileNum = 0,
+    .priority = 1,
+    .paletteNum = 0,
+    .affineParam = 0,
+};
+
+static const union AnimCmd sSpriteAnim_BoxTitleArrowLeft[] = {
+    ANIMCMD_FRAME(0, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+static const union AnimCmd sSpriteAnim_BoxTitleArrowRight[] = {
+    ANIMCMD_FRAME(0, 0, TRUE, FALSE),
+    ANIMCMD_END
+};
+
+static const union AnimCmd *const sSpriteAnimTable_BoxTitleArrow[] = {
+    sSpriteAnim_BoxTitleArrowLeft,
+    sSpriteAnim_BoxTitleArrowRight,
+};
+
+static const struct CompressedSpriteSheet sSpriteSheet_BoxTitleArrow =
+{
+    .data = sBoxTitleArrow_Gfx,
+    .size = (8 * 8) / 2,
+    .tag = GFXTAG_BOX_TITLE_ARROW,
+};
+
+
+static const struct SpriteTemplate sSpriteTemplate_BoxTitleArrow =
+{
+    .tileTag = GFXTAG_BOX_TITLE_ARROW,
+    .paletteTag = PALTAG_BOX_TITLE,
+    .oam = &sOamData_BoxTitleArrow,
+    .anims = sSpriteAnimTable_BoxTitleArrow,
+    .images = NULL,
+    .affineAnims = gDummySpriteAffineAnimTable,
+    .callback = SpriteCB_Arrow,
+};
+
 
 static const struct OamData sOamData_Arrow =
 {
@@ -1323,7 +1449,7 @@ void DrawTextWindowAndBufferTiles(const u8 *string, void *dst, u8 zero1, u8 zero
         txtColor[0] = zero2;
     txtColor[1] = TEXT_DYNAMIC_COLOR_6;
     txtColor[2] = TEXT_DYNAMIC_COLOR_5;
-    AddTextPrinterParameterized4(windowId, FONT_NORMAL, 0, 1, 0, 0, txtColor, TEXT_SKIP_DRAW, string);
+    AddTextPrinterParameterized4(windowId, FONT_SHORT, 0, 1, 0, 0, txtColor, TEXT_SKIP_DRAW, string);
 
     tileBytesToBuffer = bytesToBuffer;
     if (tileBytesToBuffer > 6u)
@@ -2158,6 +2284,9 @@ static void Task_InitPokeStorage(u8 taskId)
         }
         break;
     case 10:
+        // Alpha blend BG2 with BG3
+        SetGpuReg(REG_OFFSET_BLDCNT, BLDCNT_TGT1_BG2 | BLDCNT_EFFECT_BLEND | BLDCNT_TGT2_BG3);
+        SetGpuReg(REG_OFFSET_BLDALPHA, BLDALPHA_BLEND(12, 4));
         SetMonIconTransparency();
         if (!sStorage->isReopening)
         {
@@ -2718,13 +2847,20 @@ static void Task_MoveMon(u8 taskId)
     switch (sStorage->state)
     {
     case 0:
+        if (sCursorArea == CURSOR_AREA_IN_PARTY && CalculatePlayerPartyCount() == 1)
+        {
+            SetPokeStorageTask(Task_PokeStorageMain);
+            sStorage->state = MSTATE_ERROR_LAST_PARTY_MON;
+            return;
+        }
+
         InitMonPlaceChange(CHANGE_GRAB);
         sStorage->state++;
         break;
     case 1:
         if (!DoMonPlaceChange())
         {
-            if (sInPartyMenu)
+            if (sInPartyMenu || sCursorArea == CURSOR_AREA_IN_PARTY)
                 SetPokeStorageTask(Task_HandleMovingMonFromParty);
             else
                 SetPokeStorageTask(Task_PokeStorageMain);
@@ -2744,7 +2880,7 @@ static void Task_PlaceMon(u8 taskId)
     case 1:
         if (!DoMonPlaceChange())
         {
-            if (sInPartyMenu)
+            if (sInPartyMenu || sCursorArea == CURSOR_AREA_IN_PARTY)
                 SetPokeStorageTask(Task_HandleMovingMonFromParty);
             else
                 SetPokeStorageTask(Task_PokeStorageMain);
@@ -2765,7 +2901,10 @@ static void Task_ShiftMon(u8 taskId)
         if (!DoMonPlaceChange())
         {
             StartDisplayMonMosaicEffect();
-            SetPokeStorageTask(Task_PokeStorageMain);
+            if (sInPartyMenu || sCursorArea == CURSOR_AREA_IN_PARTY)
+                SetPokeStorageTask(Task_HandleMovingMonFromParty);
+            else
+                SetPokeStorageTask(Task_PokeStorageMain);
         }
         break;
     }
@@ -2813,7 +2952,7 @@ static void Task_WithdrawMon(u8 taskId)
     case 4:
         if (!DoMonPlaceChange())
         {
-            UpdatePartySlotColors();
+            // UpdatePartySlotColors();
             sStorage->state++;
         }
         break;
@@ -2874,7 +3013,7 @@ static void Task_DepositMenu(u8 taskId)
         {
             ResetSelectionAfterDeposit();
             StartDisplayMonMosaicEffect();
-            UpdatePartySlotColors();
+            // UpdatePartySlotColors();
             SetPokeStorageTask(Task_PokeStorageMain);
         }
         break;
@@ -2967,7 +3106,7 @@ static void Task_ReleaseMon(u8 taskId)
         {
             RefreshDisplayMon();
             StartDisplayMonMosaicEffect();
-            UpdatePartySlotColors();
+            // UpdatePartySlotColors();
             sStorage->state++;
         }
         break;
@@ -3321,7 +3460,7 @@ static void Task_HandleMovingMonFromParty(u8 taskId)
     case 1:
         if (GetNumPartySpritesCompacting() == 0)
         {
-            UpdatePartySlotColors();
+            // UpdatePartySlotColors();
             SetPokeStorageTask(Task_PokeStorageMain);
         }
         break;
@@ -3809,9 +3948,9 @@ static void FreePokeStorageData(void)
 static void SetScrollingBackground(void)
 {
     SetGpuReg(REG_OFFSET_BG3CNT, BGCNT_PRIORITY(3) | BGCNT_CHARBASE(3) | BGCNT_16COLOR | BGCNT_SCREENBASE(31));
-    DecompressAndLoadBgGfxUsingHeap(3, sWallpaperTiles_Base, 0, 0, 0);
-    DecompressDataWithHeaderVram(sWallpaperTilemap_Base, (void *)BG_SCREEN_ADDR(31));
-    LoadPalette(sWallpaperPalette_Base, BG_PLTT_ID(1), PLTT_SIZE_4BPP);
+    DecompressAndLoadBgGfxUsingHeap(3, sWallpaperTiles_Normal, 0, 0, 0);
+    DecompressDataWithHeaderVram(sWallpaperTilemap_Normal, (void *)BG_SCREEN_ADDR(31));
+    LoadPalette(sWallpaperPalette_Normal, BG_PLTT_ID(1), PLTT_SIZE_4BPP);
     // TODO: Load incoming BG3 palette into BG_PLTT_ID(2) for scrolling transitions
 }
 
@@ -4055,7 +4194,7 @@ static void InitSupplementalTilemaps(void)
     // TilemapUtil_SetPos(TILEMAPID_PARTY_MENU, 10, 0);
     // TilemapUtil_SetPos(TILEMAPID_CLOSE_BUTTON, 21, 0);
     
-    SetPartySlotTilemaps();
+    // SetPartySlotTilemaps();
     if (sInPartyMenu)
     {
         UpdateCloseBoxButtonTilemap(TRUE);
@@ -4181,50 +4320,6 @@ static void UpdateCloseBoxButtonFlash(void)
             UpdateCloseBoxButtonTilemap(sStorage->closeBoxFlashState);
         }
     }
-}
-
-static void SetPartySlotTilemaps(void)
-{
-    u8 i;
-
-    // Skips first party slot, it should always be drawn
-    // as if it has a Pokémon in it
-    for (i = 1; i < PARTY_SIZE; i++)
-    {
-        s32 species = GetMonData(&gPlayerParty[i], MON_DATA_SPECIES);
-        SetPartySlotTilemap(i, species != SPECIES_NONE);
-    }
-}
-
-static void SetPartySlotTilemap(u8 partyId, bool8 hasMon)
-{
-    u16 i, j, index;
-    const u16 *data;
-
-    if (hasMon)
-        data = sPartySlotFilled_Tilemap;
-    else
-        data = sPartySlotEmpty_Tilemap;
-
-    index = 3 * (3 * (partyId - 1) + 1);
-    index *= 4;
-    index += 7;
-    for (i = 0; i < 3; i++)
-    {
-        for (j = 0; j < 4; j++)
-            sStorage->partyMenuTilemapBuffer[index + j] = data[j];
-
-        data += 4;
-        index += 12;
-    }
-}
-
-static void UpdatePartySlotColors(void)
-{
-    SetPartySlotTilemaps();
-    TilemapUtil_SetRect(TILEMAPID_PARTY_MENU, 0, 0, 12, 22);
-    TilemapUtil_Update(TILEMAPID_PARTY_MENU);
-    ScheduleBgCopyTilemapToVram(1);
 }
 
 static void SetUpDoShowPartyMenu(void)
@@ -5091,7 +5186,7 @@ static void SetMovingMonPriority(u8 priority)
 static void SpriteCB_HeldMon(struct Sprite *sprite)
 {
     sprite->x = sStorage->cursorSprite->x;
-    sprite->y = sStorage->cursorSprite->y + sStorage->cursorSprite->y2 + 4;
+    sprite->y = sStorage->cursorSprite->y + sStorage->cursorSprite->y2;
 }
 
 static u16 TryLoadMonIconTiles(u16 species, u32 personality)
@@ -5254,7 +5349,7 @@ static void Task_InitBox(u8 taskId)
         InitBoxTitle(task->tBoxId);
         CreateBoxScrollArrows();
         InitBoxMonSprites(task->tBoxId);
-        SetGpuReg(REG_OFFSET_BG2CNT, BGCNT_PRIORITY(2) | BGCNT_CHARBASE(1) | BGCNT_SCREENBASE(27) | BGCNT_TXT512x256);
+        SetGpuReg(REG_OFFSET_BG2CNT, BGCNT_PRIORITY(2) | BGCNT_CHARBASE(2) | BGCNT_SCREENBASE(27) | BGCNT_TXT512x256);
         break;
     case 4:
         DestroyTask(taskId);
@@ -5303,12 +5398,27 @@ static void UpdateBoxTitle(u8 boxId)
     StringCopyPadded(sStorage->boxTitleText, GetBoxNamePtr(boxId), 0, BOX_NAME_LENGTH);
     DrawTextWindowAndBufferTiles(sStorage->boxTitleText, sStorage->boxTitleTiles, 0, 0, 2);
     LoadSpriteSheet(&spriteSheet);
-    LoadPalette(sBoxTitleColors[GetBoxWallpaper(boxId)], palOffset, sizeof(sBoxTitleColors[0]));
+    {
+        u16 colors[2];
+
+        if (sCursorArea == CURSOR_AREA_BOX_TITLE)
+        {
+            colors[0] = BOX_TITLE_SHADOW_HOVER;
+            colors[1] = BOX_TITLE_TEXT_HOVER;
+        }
+        else
+        {
+            colors[0] = BOX_TITLE_SHADOW_MAIN;
+            colors[1] = BOX_TITLE_TEXT_MAIN;
+        }
+
+        LoadPalette(colors, palOffset, PLTT_SIZEOF(2));
+    }
     x = GetBoxTitleBaseX(GetBoxNamePtr(boxId));
 
     for (i = 0; i < 2; i++)
     {
-        u8 spriteId = CreateSprite(&template, i * 32 + x, 28, 24);
+        u8 spriteId = CreateSprite(&template, i * 32 + x, 20, 24);
         sStorage->curBoxTitleSprites[i] = &gSprites[spriteId];
         StartSpriteAnim(sStorage->curBoxTitleSprites[i], i);
     }
@@ -5331,7 +5441,7 @@ static bool8 ScrollToBox(void)
 
         InitBoxMonIconScroll(sStorage->scrollToBoxId, sStorage->scrollDirection);
         // CreateIncomingBoxTitle(sStorage->scrollToBoxId, sStorage->scrollDirection);
-        // StartBoxScrollArrowsSlide(sStorage->scrollDirection);
+        AnimateBoxScrollArrow(sStorage->scrollDirection);
         UpdateBoxTitle(sStorage->scrollToBoxId);
         break;
     case 2:
@@ -5525,6 +5635,43 @@ static void TrimOldWallpaper(void *tilemap)
 //  SECTION: Box Title
 //------------------------------------------------------------------------------
 
+static void CreateBoxTitleFrame(u8 boxId)
+{
+    u8 i;
+    // Position x=96 and y=20
+    s16 x = 96;
+    s16 y = 20;
+
+    struct SpriteTemplate template = sSpriteTemplate_BoxTitleFrame;
+    template.paletteTag = PALTAG_BOX_TITLE;
+
+    LoadCompressedSpriteSheet(&sSpriteSheet_BoxTitleFrame);
+
+    for (i = 0; i < ARRAY_COUNT(sStorage->boxTitleFrameSprites); i++)
+    {
+        u8 animNum;
+        s16 spriteX = x;
+
+        if (i == 0) // Left end
+            animNum = 0;
+        else if (i == ARRAY_COUNT(sStorage->boxTitleFrameSprites) - 1) // Right end
+        {
+            animNum = 2;
+            animNum = 2;
+            spriteX = x + 16 + (5 * 16);
+        }
+        else // Middle
+        {
+            animNum = 1;
+            spriteX = x + 16 + ((i - 1) * 16);
+        }
+        
+        u8 spriteId = CreateSprite(&template, spriteX, y, 25);
+        sStorage->boxTitleFrameSprites[i] = &gSprites[spriteId];
+        sStorage->boxTitleFrameSprites[i]->oam.priority = 1;
+        StartSpriteAnim(sStorage->boxTitleFrameSprites[i], animNum);
+    }
+}
 
 static void InitBoxTitle(u8 boxId)
 {
@@ -5538,10 +5685,20 @@ static void InitBoxTitle(u8 boxId)
         {}
     };
 
-    u16 wallpaperId = GetBoxWallpaper(boxId);
+    CpuCopy16(sBoxTitleFrame_Pal, sStorage->boxTitlePal, sizeof(sStorage->boxTitlePal));
 
-    sStorage->boxTitlePal[14] = sBoxTitleColors[wallpaperId][0]; // Shadow color
-    sStorage->boxTitlePal[15] = sBoxTitleColors[wallpaperId][1]; // Text Color
+    if (sCursorArea == CURSOR_AREA_BOX_TITLE)
+    {
+        sStorage->boxTitlePal[3]  = BOX_TITLE_FRAME_HOVER;
+        sStorage->boxTitlePal[14] = BOX_TITLE_SHADOW_HOVER;
+        sStorage->boxTitlePal[15] = BOX_TITLE_TEXT_HOVER;
+    }
+    else
+    {
+        sStorage->boxTitlePal[3]  = BOX_TITLE_FRAME_MAIN;
+        sStorage->boxTitlePal[14] = BOX_TITLE_SHADOW_MAIN;
+        sStorage->boxTitlePal[15] = BOX_TITLE_TEXT_MAIN;
+    }
     LoadSpritePalettes(palettes);
     sStorage->wallpaperPalBits = 0x3f0;
 
@@ -5565,11 +5722,12 @@ static void InitBoxTitle(u8 boxId)
     // Title is split across two sprites
     for (i = 0; i < 2; i++)
     {
-        u8 spriteId = CreateSprite(&sSpriteTemplate_BoxTitle, x + i * 32, 28, 24);
+        u8 spriteId = CreateSprite(&sSpriteTemplate_BoxTitle, x + i * 32, 20, 24);
         sStorage->curBoxTitleSprites[i] = &gSprites[spriteId];
         StartSpriteAnim(sStorage->curBoxTitleSprites[i], i);
     }
     sStorage->boxTitleCycleId = 0;
+    CreateBoxTitleFrame(boxId);
 }
 
 // Sprite data for moving title text
@@ -5579,65 +5737,6 @@ static void InitBoxTitle(u8 boxId)
 #define sIncomingDelay data[2]
 #define sOutgoingDelay data[1]
 #define sOutgoingX     data[2]
-
-static void UNUSED CreateIncomingBoxTitle(u8 boxId, s8 direction)
-{
-    u16 palOffset;
-    s16 x, adjustedX;
-    u16 i;
-    struct SpriteSheet spriteSheet = {sStorage->boxTitleTiles, 0x200, GFXTAG_BOX_TITLE};
-    struct SpriteTemplate template = sSpriteTemplate_BoxTitle;
-
-    sStorage->boxTitleCycleId = (sStorage->boxTitleCycleId == 0);
-    if (sStorage->boxTitleCycleId == 0)
-    {
-        spriteSheet.tag = GFXTAG_BOX_TITLE;
-        palOffset = sStorage->boxTitlePalOffset;
-    }
-    else
-    {
-        spriteSheet.tag = GFXTAG_BOX_TITLE_ALT;
-        palOffset = sStorage->boxTitlePalOffset;
-        template.tileTag = GFXTAG_BOX_TITLE_ALT;
-        template.paletteTag = PALTAG_BOX_TITLE;
-    }
-
-    StringCopyPadded(sStorage->boxTitleText, GetBoxNamePtr(boxId), 0, BOX_NAME_LENGTH);
-    DrawTextWindowAndBufferTiles(sStorage->boxTitleText, sStorage->boxTitleTiles, 0, 0, 2);
-    LoadSpriteSheet(&spriteSheet);
-    LoadPalette(sBoxTitleColors[GetBoxWallpaper(boxId)], palOffset, sizeof(sBoxTitleColors[0]));
-    x = GetBoxTitleBaseX(GetBoxNamePtr(boxId));
-    adjustedX = x;
-    adjustedX += direction * 192;
-
-    // Title is split across two sprites
-    for (i = 0; i < 2; i++)
-    {
-        u8 spriteId = CreateSprite(&template, i * 32 + adjustedX, 28, 24);
-
-        sStorage->nextBoxTitleSprites[i] = &gSprites[spriteId];
-        sStorage->nextBoxTitleSprites[i]->sSpeed = (-direction) * 6;
-        sStorage->nextBoxTitleSprites[i]->sIncomingX = i * 32 + x;
-        sStorage->nextBoxTitleSprites[i]->sIncomingDelay = 0;
-        sStorage->nextBoxTitleSprites[i]->callback = SpriteCB_IncomingBoxTitle;
-        StartSpriteAnim(sStorage->nextBoxTitleSprites[i], i);
-
-        sStorage->curBoxTitleSprites[i]->sSpeed = (-direction) * 6;
-        sStorage->curBoxTitleSprites[i]->sOutgoingDelay = 1;
-        sStorage->curBoxTitleSprites[i]->callback = SpriteCB_OutgoingBoxTitle;
-    }
-}
-
-static void UNUSED CycleBoxTitleSprites(void)
-{
-    if (sStorage->boxTitleCycleId == 0)
-        FreeSpriteTilesByTag(GFXTAG_BOX_TITLE_ALT);
-    else
-        FreeSpriteTilesByTag(GFXTAG_BOX_TITLE);
-
-    sStorage->curBoxTitleSprites[0] = sStorage->nextBoxTitleSprites[0];
-    sStorage->curBoxTitleSprites[1] = sStorage->nextBoxTitleSprites[1];
-}
 
 static void UNUSED SpriteCB_IncomingBoxTitle(struct Sprite *sprite)
 {
@@ -5671,16 +5770,58 @@ static void UNUSED SpriteCB_OutgoingBoxTitle(struct Sprite *sprite)
 static void CycleBoxTitleColor(void)
 {
     u8 boxId = StorageGetCurrentBox();
-    u8 wallpaperId = GetBoxWallpaper(boxId);
-    if (sStorage->boxTitleCycleId == 0)
-        CpuCopy16(sBoxTitleColors[wallpaperId], &gPlttBufferUnfaded[sStorage->boxTitlePalOffset], PLTT_SIZEOF(2));
+    u16 colors[3];
+
+    if (sCursorArea == CURSOR_AREA_BOX_TITLE)
+    {
+        colors[0] = BOX_TITLE_FRAME_HOVER;
+        colors[1] = BOX_TITLE_SHADOW_HOVER;
+        colors[2] = BOX_TITLE_TEXT_HOVER;
+    }
     else
-        CpuCopy16(sBoxTitleColors[wallpaperId], &gPlttBufferUnfaded[sStorage->boxTitleAltPalOffset], PLTT_SIZEOF(2));
+    {
+        colors[0] = BOX_TITLE_FRAME_MAIN;
+        colors[1] = BOX_TITLE_SHADOW_MAIN;
+        colors[2] = BOX_TITLE_TEXT_MAIN;
+    }
+
+    if (sStorage->boxTitleCycleId == 0)
+    {
+        CpuCopy16(&colors[0], &gPlttBufferUnfaded[sStorage->boxTitlePalOffset - 14 + 3], PLTT_SIZEOF(1));
+        CpuCopy16(&colors[1], &gPlttBufferUnfaded[sStorage->boxTitlePalOffset], PLTT_SIZEOF(2));
+    }
+    else
+    {
+        CpuCopy16(&colors[0], &gPlttBufferUnfaded[sStorage->boxTitleAltPalOffset - 14 + 3], PLTT_SIZEOF(1));
+        CpuCopy16(&colors[1], &gPlttBufferUnfaded[sStorage->boxTitleAltPalOffset], PLTT_SIZEOF(2));
+    }
+}
+
+static void UpdateBoxTitlePalette(void)
+{
+    u16 colors[3];
+    if (sCursorArea == CURSOR_AREA_BOX_TITLE)
+    {
+        colors[0] = BOX_TITLE_FRAME_HOVER;
+        colors[1] = BOX_TITLE_SHADOW_HOVER;
+        colors[2] = BOX_TITLE_TEXT_HOVER;
+    }
+    else
+    {
+        colors[0] = BOX_TITLE_FRAME_MAIN;
+        colors[1] = BOX_TITLE_SHADOW_MAIN;
+        colors[2] = BOX_TITLE_TEXT_MAIN;
+    }
+    
+    LoadPalette(&colors[0], sStorage->boxTitlePalOffset - 14 + 3, PLTT_SIZEOF(1));
+    LoadPalette(&colors[0], sStorage->boxTitleAltPalOffset - 14 + 3, PLTT_SIZEOF(1));
+    LoadPalette(&colors[1], sStorage->boxTitlePalOffset, PLTT_SIZEOF(2));
+    LoadPalette(&colors[1], sStorage->boxTitleAltPalOffset, PLTT_SIZEOF(2));
 }
 
 static s16 GetBoxTitleBaseX(const u8 *string)
 {
-    return DISPLAY_WIDTH - 64 - GetStringWidth(FONT_NORMAL, string, 0) / 2;
+    return DISPLAY_WIDTH - 80 - GetStringWidth(FONT_SHORT, string, 0) / 2;
 }
 
 
@@ -5698,20 +5839,19 @@ static void CreateBoxScrollArrows(void)
 {
     u16 i;
 
-    LoadSpriteSheet(&sSpriteSheet_Arrow);
+    LoadCompressedSpriteSheet(&sSpriteSheet_BoxTitleArrow);
     for (i = 0; i < 2; i++)
     {
-        u8 spriteId = CreateSprite(&sSpriteTemplate_Arrow, 92 + i * 136, 28, 22);
+        u8 spriteId = CreateSprite(&sSpriteTemplate_BoxTitleArrow, 94 + i * 100, 20, 22);
         if (spriteId != MAX_SPRITES)
         {
             struct Sprite *sprite = &gSprites[spriteId];
             StartSpriteAnim(sprite, i);
             sprite->sSpeed = (i == 0) ? -1 : 1;
+            sprite->sState = 0;
             sStorage->arrowSprites[i] = sprite;
         }
     }
-    if (IsCursorOnBoxTitle())
-        AnimateBoxScrollArrows(TRUE);
 }
 
 // Slide box scroll arrows horizontally for box change
@@ -5780,6 +5920,18 @@ static void AnimateBoxScrollArrows(bool8 animate)
     }
 }
 
+// Trigger one-shot animation for the arrow in the given direction
+static void AnimateBoxScrollArrow(s8 direction)
+{
+    u8 arrowIdx = (direction < 0) ? 0 : 1; // 0 = Left, 1 = Right
+    if (sStorage->arrowSprites[arrowIdx])
+    {
+        sStorage->arrowSprites[arrowIdx]->sState = 1;
+        sStorage->arrowSprites[arrowIdx]->sTimer = 0;
+        sStorage->arrowSprites[arrowIdx]->data[2] = 0;
+    }
+}
+
 static void SpriteCB_Arrow(struct Sprite *sprite)
 {
     switch (sprite->sState)
@@ -5788,14 +5940,15 @@ static void SpriteCB_Arrow(struct Sprite *sprite)
         sprite->x2 = 0;
         break;
     case 1:
-        if (++sprite->sTimer > 3)
+        if (++sprite->sTimer > 2)
         {
             sprite->sTimer = 0;
             sprite->x2 += sprite->sSpeed;
-            if (++sprite->data[2] > 5)
+            if (++sprite->data[2] > 3)
             {
                 sprite->data[2] = 0;
                 sprite->x2 = 0;
+                sprite->sState = 0;
             }
         }
         break;
@@ -5869,11 +6022,11 @@ static void GetCursorCoordsByPos(u8 cursorArea, u8 cursorPosition, u16 *x, u16 *
     {
     case CURSOR_AREA_IN_BOX:
         *x = (cursorPosition % IN_BOX_COLUMNS) * 24 + 92;
-        *y = (cursorPosition / IN_BOX_COLUMNS) * 24 + 28;
+        *y = (cursorPosition / IN_BOX_COLUMNS) * 24 + 32;
         break;
     case CURSOR_AREA_IN_PARTY:
         *x = 40;
-        *y = cursorPosition * 24 + 4; // 12px offset like box
+        *y = cursorPosition * 24 + 8; // 12px offset like box
         // if (cursorPosition == 0)
         // {
         //     *x = 104;
@@ -5891,8 +6044,8 @@ static void GetCursorCoordsByPos(u8 cursorArea, u8 cursorPosition, u16 *x, u16 *
         // }
         break;
     case CURSOR_AREA_BOX_TITLE:
-        *x = 162;
-        *y = 12;
+        *x = 144;
+        *y = 8;
         break;
     case CURSOR_AREA_BUTTONS:
         *y = sIsMonBeingMoved ? 8 : 14;
@@ -6112,13 +6265,13 @@ static void DoCursorNewPosUpdate(void)
     }
 
     TryRefreshDisplayMon();
+    UpdateBoxTitlePalette();
     switch (sCursorArea)
     {
     case CURSOR_AREA_BUTTONS:
         SetMovingMonPriority(1);
         break;
     case CURSOR_AREA_BOX_TITLE:
-        AnimateBoxScrollArrows(TRUE);
         break;
     case CURSOR_AREA_IN_PARTY:
         sStorage->cursorShadowSprite->subpriority = 13;
@@ -6130,7 +6283,7 @@ static void DoCursorNewPosUpdate(void)
             sStorage->cursorSprite->oam.priority = 1;
             sStorage->cursorShadowSprite->oam.priority = 1;
             sStorage->cursorShadowSprite->subpriority = 21;
-            sStorage->cursorShadowSprite->invisible = FALSE;
+            // sStorage->cursorShadowSprite->invisible = FALSE;
             SetMovingMonPriority(1);
         }
         break;
@@ -7961,8 +8114,8 @@ static void CreateCursorSprites(void)
     {
         sStorage->cursorShadowSprite = &gSprites[spriteId];
         sStorage->cursorShadowSprite->oam.priority = priority;
-        if (sCursorArea)
-            sStorage->cursorShadowSprite->invisible = TRUE;
+        sStorage->cursorShadowSprite->oam.priority = priority;
+        sStorage->cursorShadowSprite->invisible = TRUE;
     }
     else
     {
@@ -8191,8 +8344,8 @@ static const struct WindowTemplate sWindowTemplate_MultiMove =
     .bg = 0,
     .tilemapLeft = 10,
     .tilemapTop = 3,
-    .width = 18,
-    .height = 15,
+    .width = 19,
+    .height = 16,
     .paletteNum = 9,
     .baseBlock = 0x0,
 };
@@ -8285,12 +8438,12 @@ static bool8 MultiMove_Start(void)
         FillWindowPixelBuffer8Bit(sStorage->multiMoveWindowId, PIXEL_FILL(0));
         MultiMove_SetIconToBg(sMultiMove->fromColumn, sMultiMove->fromRow);
         SetBgAttribute(0, BG_ATTR_PALETTEMODE, 1);
-        SetBgAttribute(0, BG_ATTR_CHARBASEINDEX, 2);
+        SetBgAttribute(0, BG_ATTR_CHARBASEINDEX, 0);
         PutWindowTilemap(sStorage->multiMoveWindowId);
         CopyWindowToVram8Bit(sStorage->multiMoveWindowId, COPYWIN_FULL);
         BlendPalettes(0x3F00, 8, RGB_WHITE);
         StartCursorAnim(CURSOR_ANIM_OPEN);
-        SetGpuReg(REG_OFFSET_BG0CNT, BGCNT_PRIORITY(0) | BGCNT_CHARBASE(2) | BGCNT_SCREENBASE(29) | BGCNT_256COLOR);
+        SetGpuReg(REG_OFFSET_BG0CNT, BGCNT_PRIORITY(0) | BGCNT_CHARBASE(0) | BGCNT_SCREENBASE(29) | BGCNT_256COLOR);
         sMultiMove->state++;
         break;
     case 2:
