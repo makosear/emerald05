@@ -7674,6 +7674,14 @@ static u8 HandleInput_InParty(void)
             return INPUT_PRESSED_B;
         }
 
+        if (gSaveBlock2Ptr->optionsButtonMode == OPTIONS_BUTTON_MODE_LR)
+        {
+            if (JOY_HELD(L_BUTTON))
+                return INPUT_SCROLL_LEFT;
+            if (JOY_HELD(R_BUTTON))
+                return INPUT_SCROLL_RIGHT;
+        }
+
         if (JOY_NEW(SELECT_BUTTON))
         {
             ToggleCursorAutoAction();
