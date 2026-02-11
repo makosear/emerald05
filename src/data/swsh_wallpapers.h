@@ -102,3 +102,28 @@ static const u16 sWallpaperPalette_Dark[]     = INCBIN_U16("graphics/pokemon_sto
 static const u32 sWallpaperTiles_Fairy[]      = INCBIN_U32("graphics/pokemon_storage/swsh/wallpapers/fairy.4bpp.smol");
 static const u32 sWallpaperTilemap_Fairy[]    = INCBIN_U32("graphics/pokemon_storage/swsh/wallpapers/fairy.bin.smolTM");
 static const u16 sWallpaperPalette_Fairy[]    = INCBIN_U16("graphics/pokemon_storage/swsh/wallpapers/fairy.gbapal");
+
+#define WALLPAPER_ENTRY(name) {sWallpaperTiles_##name, sWallpaperTilemap_##name, sWallpaperPalette_##name}
+
+static const struct Wallpaper sSwShWallpapers[] =
+{
+    [WALLPAPER_BASE]     = WALLPAPER_ENTRY(Base),
+    [WALLPAPER_NORMAL]   = WALLPAPER_ENTRY(Normal),
+    [WALLPAPER_FIGHTING] = WALLPAPER_ENTRY(Fighting),
+    [WALLPAPER_FLYING]   = WALLPAPER_ENTRY(Flying),
+    [WALLPAPER_POISON]   = WALLPAPER_ENTRY(Poison),
+    [WALLPAPER_GROUND]   = WALLPAPER_ENTRY(Ground),
+    [WALLPAPER_ROCK]     = WALLPAPER_ENTRY(Rock),
+    [WALLPAPER_BUG]      = WALLPAPER_ENTRY(Bug),
+    [WALLPAPER_GHOST]    = WALLPAPER_ENTRY(Ghost),
+    [WALLPAPER_STEEL]    = WALLPAPER_ENTRY(Steel),
+    [WALLPAPER_FIRE]     = WALLPAPER_ENTRY(Fire),
+    [WALLPAPER_WATER]    = WALLPAPER_ENTRY(Water),
+    [WALLPAPER_GRASS]    = WALLPAPER_ENTRY(Grass),
+    [WALLPAPER_ELECTRIC] = WALLPAPER_ENTRY(Electric),
+    [WALLPAPER_PSYCHIC]  = WALLPAPER_ENTRY(Psychic),
+    [WALLPAPER_ICE]      = WALLPAPER_ENTRY(Ice),
+    [WALLPAPER_DRAGON]   = WALLPAPER_ENTRY(Dragon),
+    [WALLPAPER_DARK]     = WALLPAPER_ENTRY(Dark),
+    [WALLPAPER_FAIRY]    = WALLPAPER_ENTRY(Fairy),
+};

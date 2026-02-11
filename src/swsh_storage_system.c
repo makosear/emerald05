@@ -79,8 +79,6 @@ enum {
 enum {
     MSG_EXIT_BOX,
     MSG_WHAT_YOU_DO,
-    MSG_PICK_A_THEME,
-    MSG_PICK_A_WALLPAPER,
     MSG_IS_SELECTED,
     MSG_JUMP_TO_WHICH_BOX,
     MSG_DEPOSIT_IN_WHICH_BOX,
@@ -539,6 +537,8 @@ struct PokemonStorageSystemData
     u8 displayMenuTilemapBuffer[0x800];
 };
 
+#include "data/swsh_wallpapers.h"
+
 static u32 sItemIconGfxBuffer[98];
 
 EWRAM_DATA static u8 sPreviousBoxOption = 0;
@@ -592,6 +592,7 @@ static void Task_HandleWallpapers(u8);
 static void Task_NameBox(u8);
 static void Task_PrintCantStoreMail(u8);
 static void Task_HandleMovingMonFromParty(u8);
+static void Task_WallpaperChange(u8);
 
 // Input handlers
 static u8 InBoxInput_Normal(void);
@@ -774,17 +775,17 @@ static struct Sprite *CreateChooseBoxArrows(u16, u16, u8, u8, u8);
 
 // Box title
 static void InitBoxTitle(u8);
-static void UNUSED CreateIncomingBoxTitle(u8, s8);
-static void UNUSED CycleBoxTitleSprites(void);
 static void UNUSED SpriteCB_IncomingBoxTitle(struct Sprite *);
 static void UNUSED SpriteCB_OutgoingBoxTitle(struct Sprite *);
-static void CycleBoxTitleColor(void);
+static void UNUSED CycleBoxTitleColor(void);
 static s16 GetBoxTitleBaseX(const u8 *);
 
 // Wallpaper
 static void SetWallpaperForCurrentBox(u8);
 static bool8 DoWallpaperGfxChange(void);
 static void LoadWallpaperGfx(u8, s8);
+static void StartLoadWallpaperGfx(u8, s8);
+static void UpdateWallpaperGfx(u8, s8);
 static bool32 WaitForWallpaperGfxLoad(void);
 static void DrawWallpaper(const void *, s8, u8);
 static void TrimOldWallpaper(void *);
@@ -1114,8 +1115,6 @@ static const struct StorageMessage sMessages[] =
 {
     [MSG_EXIT_BOX]             = {COMPOUND_STRING("Exit from the BOX?"),         MSG_VAR_NONE},
     [MSG_WHAT_YOU_DO]          = {COMPOUND_STRING("What do you want to do?"),    MSG_VAR_NONE},
-    [MSG_PICK_A_THEME]         = {COMPOUND_STRING("Please pick a theme."),       MSG_VAR_NONE},
-    [MSG_PICK_A_WALLPAPER]     = {COMPOUND_STRING("Pick the wallpaper."),        MSG_VAR_NONE},
     [MSG_IS_SELECTED]          = {gText_PkmnIsSelected,                          MSG_VAR_MON_NAME_1},
     [MSG_JUMP_TO_WHICH_BOX]    = {COMPOUND_STRING("Jump to which BOX?"),         MSG_VAR_NONE},
     [MSG_DEPOSIT_IN_WHICH_BOX] = {COMPOUND_STRING("Deposit in which BOX?"),      MSG_VAR_NONE},
@@ -1284,8 +1283,6 @@ static const union AffineAnimCmd *const sAffineAnims_ReleaseMon[] =
     [RELEASE_ANIM_RELEASE]   = sAffineAnim_ReleaseMon_Release,
     [RELEASE_ANIM_CAME_BACK] = sAffineAnim_ReleaseMon_CameBack
 };
-
-#include "data/swsh_wallpapers.h"
 
 static const u16 sUnusedColor = RGB(26, 29, 8);
 
@@ -3508,11 +3505,9 @@ static void Task_HandleWallpapers(u8 taskId)
         sStorage->listMenuScrollRow = 0;
         sStorage->listMenuSelectedRow = 0;
         AddWallpaperMenu();
-        // PrintMessage(MSG_PICK_A_WALLPAPER);
         sStorage->state++;
         break;
     case 1:
-        // Input handling for list menu
         input = ListMenu_ProcessInput(sStorage->listMenuTaskId);
         ListMenuGetScrollAndRow(sStorage->listMenuTaskId, &sStorage->listMenuScrollRow, &sStorage->listMenuSelectedRow);
         if (input != LIST_NOTHING_CHOSEN)
@@ -3535,10 +3530,18 @@ static void Task_HandleWallpapers(u8 taskId)
                 sStorage->wallpaperId = input - MENU_BASE; // Convert to WALLPAPER_BASE...
                 SetWallpaperForCurrentBox(sStorage->wallpaperId);
                 ClearBottomWindow();
-                SetPokeStorageTask(Task_PokeStorageMain);
+                SetPokeStorageTask(Task_WallpaperChange);
             }
         }
         break;
+    }
+}
+
+static void Task_WallpaperChange(u8 taskId)
+{
+    if (DoWallpaperGfxChange() == FALSE)
+    {
+        SetPokeStorageTask(Task_PokeStorageMain);
     }
 }
 
@@ -3868,11 +3871,11 @@ static void FreePokeStorageData(void)
 
 static void SetScrollingBackground(void)
 {
+    u8 wallpaperId = GetBoxWallpaper(StorageGetCurrentBox());
     SetGpuReg(REG_OFFSET_BG3CNT, BGCNT_PRIORITY(3) | BGCNT_CHARBASE(3) | BGCNT_16COLOR | BGCNT_SCREENBASE(31));
-    DecompressAndLoadBgGfxUsingHeap(3, sWallpaperTiles_Base, 0, 0, 0);
-    DecompressDataWithHeaderVram(sWallpaperTilemap_Base, (void *)BG_SCREEN_ADDR(31));
-    LoadPalette(sWallpaperPalette_Base, BG_PLTT_ID(1), PLTT_SIZE_4BPP);
-    // TODO: Load incoming BG3 palette into BG_PLTT_ID(2) for scrolling transitions
+    DecompressAndLoadBgGfxUsingHeap(3, sSwShWallpapers[wallpaperId].tiles, 0, 0, 0);
+    DecompressDataWithHeaderVram(sSwShWallpapers[wallpaperId].tilemap, (void *)BG_SCREEN_ADDR(31));
+    LoadPalette(sSwShWallpapers[wallpaperId].palettes, BG_PLTT_ID(1), PLTT_SIZE_4BPP);
 }
 
 static void ScrollBackground(void)
@@ -3927,7 +3930,7 @@ static void InitPalettesAndSprites(void)
     RefreshDisplayMonData();
 }
 
-static void CreateMarkingComboSprite(void)
+static void UNUSED CreateMarkingComboSprite(void)
 {
     sStorage->markingComboSprite = CreateMonMarkingComboSprite(GFXTAG_MARKING_COMBO, PALTAG_MARKING_COMBO, NULL);
     sStorage->markingComboSprite->oam.priority = 1;
@@ -3937,7 +3940,7 @@ static void CreateMarkingComboSprite(void)
     sStorage->markingComboTilesPtr = (void *) OBJ_VRAM0 + 32 * GetSpriteTileStartByTag(GFXTAG_MARKING_COMBO);
 }
 
-static void CreateWaveformSprites(void)
+static void UNUSED CreateWaveformSprites(void)
 {
     u16 i;
     struct SpriteSheet sheet = sSpriteSheet_Waveform;
@@ -3991,7 +3994,7 @@ static void SpriteCB_DisplayMonMosaic(struct Sprite *sprite)
     }
 }
 
-static void CreateDisplayMonSprite(void)
+static void UNUSED CreateDisplayMonSprite(void)
 {
     u16 i;
     u16 tileStart;
@@ -4385,7 +4388,7 @@ static void AddWallpaperMenu(void)
     sStorage->listMenuTemplate.cursorShadowPal = 3;
     sStorage->listMenuTemplate.lettersSpacing = 1;
     sStorage->listMenuTemplate.itemVerticalPadding = 0;
-    sStorage->listMenuTemplate.scrollMultiple = LIST_NO_MULTIPLE_SCROLL;
+    sStorage->listMenuTemplate.scrollMultiple = LIST_MULTIPLE_SCROLL_DPAD;
     sStorage->listMenuTemplate.fontId = FONT_NORMAL;
     sStorage->listMenuTemplate.cursorKind = 0;
 
@@ -4395,11 +4398,12 @@ static void AddWallpaperMenu(void)
         (sStorage->menuWindow.tilemapLeft + sStorage->menuWindow.width / 2) * 8, // Center X
         sStorage->menuWindow.tilemapTop * 8 - 4, // Top Y
         (sStorage->menuWindow.tilemapTop + sStorage->menuWindow.height) * 8 + 4, // Bottom Y
-        sStorage->menuItemsCount - sStorage->listMenuTemplate.maxShowed,
-        GFXTAG_LIST_MENU_ARROW,
-        PALTAG_LIST_MENU_SCROLL_ARROW,
-        &sStorage->listMenuScrollRow
-    );
+        sStorage->menuItemsCount - sStorage->listMenuTemplate.maxShowed, 
+        GFXTAG_LIST_MENU_ARROW, 
+        PALTAG_LIST_MENU_SCROLL_ARROW, 
+        &sStorage->listMenuScrollRow);
+
+    ScheduleBgCopyTilemapToVram(0);
 }
 
 static u8 GetCurrentBoxOption(void)
@@ -5287,6 +5291,11 @@ static void Task_InitBox(u8 taskId)
         if (!WaitForWallpaperGfxLoad())
             return;
 
+        if (sStorage->wallpaperTiles != NULL)
+        {
+            Free(sStorage->wallpaperTiles);
+            sStorage->wallpaperTiles = NULL;
+        }
         InitBoxTitle(task->tBoxId);
         CreateBoxScrollArrows();
         InitBoxMonSprites(task->tBoxId);
@@ -5374,14 +5383,17 @@ static bool8 ScrollToBox(void)
     case 0:
         // Disabled scrolling 'box' wallpaper (BG2)
         // LoadWallpaperGfx(sStorage->scrollToBoxId, sStorage->scrollDirection);
-        LoadWallpaperGfx(sStorage->scrollToBoxId, 0);
         sStorage->scrollState++;
     case 1:
         if (!WaitForWallpaperGfxLoad())
             return TRUE;
 
+        if (sStorage->wallpaperTiles != NULL)
+        {
+            Free(sStorage->wallpaperTiles);
+            sStorage->wallpaperTiles = NULL;
+        }
         InitBoxMonIconScroll(sStorage->scrollToBoxId, sStorage->scrollDirection);
-        // CreateIncomingBoxTitle(sStorage->scrollToBoxId, sStorage->scrollDirection);
         AnimateBoxScrollArrow(sStorage->scrollDirection);
         UpdateBoxTitle(sStorage->scrollToBoxId);
         break;
@@ -5393,10 +5405,31 @@ static bool8 ScrollToBox(void)
             // sStorage->bg2_X += sStorage->scrollSpeed;
             if (--sStorage->scrollTimer != 0)
                 return TRUE;
-            // CycleBoxTitleSprites();
-            // StopBoxScrollArrowsSlide();
+            StartLoadWallpaperGfx(sStorage->scrollToBoxId, 0);
+            sStorage->scrollState++;
+            return TRUE;
         }
         return iconsScrolling;
+    case 3:
+        iconsScrolling = UpdateBoxMonIconScroll();
+        UpdateWallpaperGfx(sStorage->scrollToBoxId, 0);
+        sStorage->scrollState++;
+        return TRUE;
+    case 4:
+        iconsScrolling = UpdateBoxMonIconScroll();
+        if (!WaitForWallpaperGfxLoad())
+            return TRUE;
+
+        if (sStorage->wallpaperTiles != NULL)
+        {
+            Free(sStorage->wallpaperTiles);
+            sStorage->wallpaperTiles = NULL;
+        }
+
+        if (iconsScrolling)
+            return TRUE;
+            
+        return FALSE;
     }
 
     sStorage->scrollState++;
@@ -5436,7 +5469,7 @@ static bool8 DoWallpaperGfxChange(void)
     switch (sStorage->wallpaperChangeState)
     {
     case 0:
-        BeginNormalPaletteFade(sStorage->wallpaperPalBits, 1, 0, 16, RGB_WHITEALPHA);
+        BeginNormalPaletteFade(1 << 1, 0, 0, 16, RGB_WHITEALPHA);
         sStorage->wallpaperChangeState++;
         break;
     case 1:
@@ -5450,8 +5483,12 @@ static bool8 DoWallpaperGfxChange(void)
     case 2:
         if (WaitForWallpaperGfxLoad() == TRUE)
         {
-            CycleBoxTitleColor();
-            BeginNormalPaletteFade(sStorage->wallpaperPalBits, 1, 16, 0, RGB_WHITEALPHA);
+            if (sStorage->wallpaperTiles != NULL)
+            {
+                Free(sStorage->wallpaperTiles);
+                sStorage->wallpaperTiles = NULL;
+            }
+            BeginNormalPaletteFade(1 << 1, 0, 16, 0, RGB_WHITEALPHA);
             sStorage->wallpaperChangeState++;
         }
         break;
@@ -5468,70 +5505,46 @@ static bool8 DoWallpaperGfxChange(void)
 
 static void LoadWallpaperGfx(u8 boxId, s8 direction)
 {
-    // u8 wallpaperId;
-    // const struct Wallpaper *wallpaper;
-    // void *iconGfx;
-    // u32 tilesSize, iconSize;
-    //
-    // sStorage->wallpaperLoadBoxId = boxId;
-    // sStorage->wallpaperLoadDir = direction;
-    // if (sStorage->wallpaperLoadDir != 0)
-    // {
-    //     sStorage->wallpaperOffset = (sStorage->wallpaperOffset == 0);
-    //     TrimOldWallpaper(sStorage->wallpaperBgTilemapBuffer);
-    // }
-    // 
-    // wallpaperId = GetBoxWallpaper(sStorage->wallpaperLoadBoxId);
-    // if (wallpaperId != WALLPAPER_FRIENDS)
-    // {
-    //     wallpaper = &sWallpapers[wallpaperId];
-    //     DecompressDataWithHeaderWram(wallpaper->tilemap, sStorage->wallpaperTilemap);
-    //     DrawWallpaper(sStorage->wallpaperTilemap, sStorage->wallpaperLoadDir, sStorage->wallpaperOffset);
-    
-    //     if (sStorage->wallpaperLoadDir != 0)
-    //         LoadPalette(wallpaper->palettes, BG_PLTT_ID(4) + BG_PLTT_ID(sStorage->wallpaperOffset * 2), 2 * PLTT_SIZE_4BPP);
-    //     else
-    //         CpuCopy16(wallpaper->palettes, &gPlttBufferUnfaded[BG_PLTT_ID(4) + BG_PLTT_ID(sStorage->wallpaperOffset * 2)], 2 * PLTT_SIZE_4BPP);
-    //
-    //     sStorage->wallpaperTiles = malloc_and_decompress(wallpaper->tiles, &tilesSize);
-    //     LoadBgTiles(2, sStorage->wallpaperTiles, tilesSize, sStorage->wallpaperOffset << 8);
-    // }
-    // else
-    // {
-    //     wallpaper = &sWaldaWallpapers[GetWaldaWallpaperPatternId()];
-    //     DecompressDataWithHeaderWram(wallpaper->tilemap, sStorage->wallpaperTilemap);
-    //     DrawWallpaper(sStorage->wallpaperTilemap, sStorage->wallpaperLoadDir, sStorage->wallpaperOffset);
-    //
-    //     CpuCopy16(wallpaper->palettes, sStorage->wallpaperTilemap, 0x40);
-    //     CpuCopy16(GetWaldaWallpaperColorsPtr(), &sStorage->wallpaperTilemap[1], 4);
-    //     CpuCopy16(GetWaldaWallpaperColorsPtr(), &sStorage->wallpaperTilemap[17], 4);
-    //
-    //     if (sStorage->wallpaperLoadDir != 0)
-    //         LoadPalette(sStorage->wallpaperTilemap, BG_PLTT_ID(4) + BG_PLTT_ID(sStorage->wallpaperOffset * 2), 2 * PLTT_SIZE_4BPP);
-    //     else
-    //         CpuCopy16(sStorage->wallpaperTilemap, &gPlttBufferUnfaded[BG_PLTT_ID(4) + BG_PLTT_ID(sStorage->wallpaperOffset * 2)], 2 * PLTT_SIZE_4BPP);
-    //
-    //     sStorage->wallpaperTiles = malloc_and_decompress(wallpaper->tiles, &tilesSize);
-    //     iconGfx = malloc_and_decompress(sWaldaWallpaperIcons[GetWaldaWallpaperIconId()], &iconSize);
-    //     CpuCopy32(iconGfx, sStorage->wallpaperTiles + 0x800, iconSize);
-    //     Free(iconGfx);
-    //     LoadBgTiles(2, sStorage->wallpaperTiles, tilesSize, sStorage->wallpaperOffset << 8);
-    // }
-    //
-    // CopyBgTilemapBufferToVram(2);
+    StartLoadWallpaperGfx(boxId, direction);
+    UpdateWallpaperGfx(boxId, direction);
+}
+
+static void StartLoadWallpaperGfx(u8 boxId, s8 direction)
+{
+    u8 wallpaperId = GetBoxWallpaper(boxId);
+    const void *src = sSwShWallpapers[wallpaperId].tiles;
+    u32 size = GetDecompressedDataSize(src);
+
+    if (sStorage->wallpaperTiles != NULL)
+    {
+        Free(sStorage->wallpaperTiles);
+    }
+    sStorage->wallpaperTiles = Alloc(size);
+    if (sStorage->wallpaperTiles != NULL)
+        DecompressDataWithHeaderWram(src, sStorage->wallpaperTiles);
+}
+
+static void UpdateWallpaperGfx(u8 boxId, s8 direction)
+{
+    u8 wallpaperId = GetBoxWallpaper(boxId);
+    if (sStorage->wallpaperTiles != NULL)
+    {
+        u32 size = GetDecompressedDataSize(sSwShWallpapers[wallpaperId].tiles);
+        LoadBgTiles(3, sStorage->wallpaperTiles, size, 0);
+    }
+    DecompressDataWithHeaderWram(sSwShWallpapers[wallpaperId].tilemap, sStorage->wallpaperBgTilemapBuffer);
+    RequestDma3Copy(sStorage->wallpaperBgTilemapBuffer, (void *)BG_SCREEN_ADDR(31), 0x800, 1);
+    LoadPalette(sSwShWallpapers[wallpaperId].palettes, BG_PLTT_ID(1), PLTT_SIZE_4BPP);
 }
 
 static bool32 WaitForWallpaperGfxLoad(void)
 {
     if (IsDma3ManagerBusyWithBgCopy())
         return FALSE;
-
-    TRY_FREE_AND_SET_NULL(sStorage->wallpaperTiles);
-
     return TRUE;
 }
 
-static void DrawWallpaper(const void *tilemap, s8 direction, u8 offset)
+static void UNUSED DrawWallpaper(const void *tilemap, s8 direction, u8 offset)
 {
     s16 tileOffset = offset * 256;
     s16 paletteNum = (offset * 2) + 3;
@@ -5549,7 +5562,7 @@ static void DrawWallpaper(const void *tilemap, s8 direction, u8 offset)
     FillBgTilemapBufferRect(2, 0, x, 2, 4, 0x12, 17);
 }
 
-static void TrimOldWallpaper(void *tilemap)
+static void UNUSED TrimOldWallpaper(void *tilemap)
 {
     u16 i;
     u16 *dest = tilemap;
@@ -5708,9 +5721,8 @@ static void UNUSED SpriteCB_OutgoingBoxTitle(struct Sprite *sprite)
 #undef sOutgoingDelay
 #undef sOutgoingX
 
-static void CycleBoxTitleColor(void)
+static void UNUSED CycleBoxTitleColor(void)
 {
-    u8 boxId = StorageGetCurrentBox();
     u16 colors[3];
 
     if (sCursorArea == CURSOR_AREA_BOX_TITLE)
@@ -7514,7 +7526,6 @@ static u8 InBoxInput_MovingMultiple(void)
 static u8 HandleInput_InParty(void)
 {
     u8 retVal;
-    bool8 gotoBox;
     s8 cursorArea;
     s8 cursorPosition;
 
@@ -7525,7 +7536,6 @@ static u8 HandleInput_InParty(void)
         sStorage->cursorHorizontalWrap = 0;
         sStorage->cursorVerticalWrap = 0;
         sStorage->cursorFlipTimer = 0;
-        gotoBox = FALSE;
         retVal = INPUT_NONE;
 
         if (JOY_REPEAT(DPAD_UP))
@@ -7584,8 +7594,6 @@ static u8 HandleInput_InParty(void)
             {
                 if (sStorage->boxOption == OPTION_DEPOSIT)
                     return INPUT_CLOSE_BOX;
-
-                gotoBox = TRUE;
             }
             else if (SetSelectionMenuTexts())
             {
@@ -9755,19 +9763,20 @@ u8 *GetBoxNamePtr(u8 boxId)
 
 static u8 GetBoxWallpaper(u8 boxId)
 {
-    // if (boxId < TOTAL_BOXES_COUNT)
-    //     return gPokemonStoragePtr->boxWallpapers[boxId];
-    // else
-    //     return 0;
+    if (boxId < TOTAL_BOXES_COUNT)
+    {
+        u8 wallpaperId = gPokemonStoragePtr->boxWallpapers[boxId];
+        if (wallpaperId >= WALLPAPER_COUNT) 
+            return WALLPAPER_BASE;
+        return wallpaperId;
+    }
     return WALLPAPER_BASE;
 }
 
 static void SetBoxWallpaper(u8 boxId, u8 wallpaperId)
 {
-    // if (boxId < TOTAL_BOXES_COUNT && wallpaperId < WALLPAPER_COUNT)
-    //     gPokemonStoragePtr->boxWallpapers[boxId] = wallpaperId;
-    if (boxId < TOTAL_BOXES_COUNT)
-        gPokemonStoragePtr->boxWallpapers[boxId] = WALLPAPER_BASE;
+    if (boxId < TOTAL_BOXES_COUNT && wallpaperId < WALLPAPER_COUNT)
+        gPokemonStoragePtr->boxWallpapers[boxId] = wallpaperId;
 }
 
 // For moving to the next Pokémon while viewing the summary screen
@@ -10051,7 +10060,7 @@ struct
     },
 };
 
-static void TilemapUtil_SetMap(u8 id, u8 bg, const void *tilemap, u16 width, u16 height)
+static void UNUSED TilemapUtil_SetMap(u8 id, u8 bg, const void *tilemap, u16 width, u16 height)
 {
     u16 bgScreenSize, bgType;
 
@@ -10093,7 +10102,7 @@ static void UNUSED TilemapUtil_SetSavedMap(u8 id, const void *tilemap)
     sTilemapUtil[id].active = TRUE;
 }
 
-static void TilemapUtil_SetPos(u8 id, u16 x, u16 y)
+static void UNUSED TilemapUtil_SetPos(u8 id, u16 x, u16 y)
 {
     if (id >= sNumTilemapUtilIds)
         return;
@@ -10115,7 +10124,7 @@ static void TilemapUtil_SetRect(u8 id, u16 x, u16 y, u16 width, u16 height)
     sTilemapUtil[id].active = TRUE;
 }
 
-static void TilemapUtil_Move(u8 id, u8 mode, s8 val)
+static void UNUSED TilemapUtil_Move(u8 id, u8 mode, s8 val)
 {
     if (id >= sNumTilemapUtilIds)
         return;
