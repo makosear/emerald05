@@ -252,6 +252,7 @@ enum {
     GFXTAG_GENDER_ICON,
     GFXTAG_TYPE_ICON,
     GFXTAG_SHINY_ICON,
+    GFXTAG_STAT_LABELS,
     GFXTAG_DISPLAY_MON,
     GFXTAG_BOX_TITLE,
     GFXTAG_BOX_TITLE_FRAME,
@@ -567,6 +568,7 @@ struct PokemonStorageSystemData
     struct Sprite *genderIconSprite;
     struct Sprite *typeIconSprites[2];
     struct Sprite *shinyIconSprite;
+    struct Sprite *statLabelSprites[2];
     u16 *typeIconTilesPtr[2];
     u8 ALIGNED(4) tileBuffer[MON_PIC_SIZE * MAX_MON_PIC_FRAMES];
     u8 ALIGNED(4) itemIconBuffer[0x800];
@@ -874,6 +876,7 @@ static void UpdateGenderIconSprite(u8);
 static void UpdateTypeIconTiles(u8, void *);
 static void SpriteCB_TypeIcon(struct Sprite *);
 static void UpdateTypeIconsSprite(void);
+static void UpdateStatLabelsSprites(void);
 static void UpdateShinyIconSprite(void);
 static void HideInfoPanelSprites(void);
 static void ClearMonInfoPanel(void);
@@ -1010,6 +1013,7 @@ static const u32 sBoxTitleFrame_Gfx[]        = INCBIN_U32("graphics/pokemon_stor
 static const u32 sBoxTitleArrow_Gfx[]        = INCBIN_U32("graphics/pokemon_storage/swsh/box_title_arrow.4bpp.smol");
 static const u32 sGenderIcons_Gfx[]          = INCBIN_U32("graphics/pokemon_storage/swsh/gender_icons.4bpp.smol");
 static const u32 sShinyIcon_Gfx[]            = INCBIN_U32("graphics/pokemon_storage/swsh/shiny_icon.4bpp.smol");
+static const u32 sStatLabels_Gfx[]           = INCBIN_U32("graphics/pokemon_storage/swsh/stat_labels.4bpp.smol");
 static const ALIGNED(4) u8 sTypeIcons_Gfx[]  = INCBIN_U8("graphics/pokemon_storage/swsh/type_icons.4bpp"); // Uncompressed for DMA copy
 static const u16 sTypeIcons_Pal[]            = INCBIN_U16("graphics/pokemon_storage/swsh/type_icons.gbapal");
 static const u16 sMarkings_Pal[]             = INCBIN_U16("graphics/pokemon_storage/swsh/markings.gbapal");
@@ -1618,6 +1622,72 @@ static const struct SpriteTemplate sSpriteTemplate_ShinyIcon =
     .paletteTag = PALTAG_MISC_2,
     .oam = &sOamData_ShinyIcon,
     .anims = gDummySpriteAnimTable,
+    .images = NULL,
+    .affineAnims = gDummySpriteAffineAnimTable,
+    .callback = SpriteCallbackDummy
+};
+
+static const struct OamData sOamData_StatLabels =
+{
+    .y = 0,
+    .affineMode = ST_OAM_AFFINE_OFF,
+    .objMode = ST_OAM_OBJ_NORMAL,
+    .mosaic = FALSE,
+    .bpp = ST_OAM_4BPP,
+    .shape = SPRITE_SHAPE(16x16),
+    .x = 0,
+    .matrixNum = 0,
+    .size = SPRITE_SIZE(16x16),
+    .tileNum = 0,
+    .priority = 0,
+};
+
+static const union AnimCmd sSpriteAnim_StatAtk[] = {
+    ANIMCMD_FRAME(0, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+
+static const union AnimCmd sSpriteAnim_StatDef[] = {
+    ANIMCMD_FRAME(4, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+
+static const union AnimCmd sSpriteAnim_StatSpAtk[] = {
+    ANIMCMD_FRAME(8, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+
+static const union AnimCmd sSpriteAnim_StatSpDef[] = {
+    ANIMCMD_FRAME(12, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+
+static const union AnimCmd sSpriteAnim_StatSpeed[] = {
+    ANIMCMD_FRAME(16, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+
+static const union AnimCmd *const sSpriteAnimTable_StatLabels[] = {
+    sSpriteAnim_StatAtk,
+    sSpriteAnim_StatDef,
+    sSpriteAnim_StatSpAtk,
+    sSpriteAnim_StatSpDef,
+    sSpriteAnim_StatSpeed,
+};
+
+static const struct CompressedSpriteSheet sStatLabelsSpriteSheet =
+{
+    .data = sStatLabels_Gfx,
+    .size = (16 * 16 * 5) / 2,
+    .tag = GFXTAG_STAT_LABELS
+};
+
+static const struct SpriteTemplate sSpriteTemplate_StatLabels =
+{
+    .tileTag = GFXTAG_STAT_LABELS,
+    .paletteTag = PALTAG_MISC_2,
+    .oam = &sOamData_StatLabels,
+    .anims = sSpriteAnimTable_StatLabels,
     .images = NULL,
     .affineAnims = gDummySpriteAffineAnimTable,
     .callback = SpriteCallbackDummy
@@ -4250,6 +4320,9 @@ static void InitPalettesAndSprites(void)
     // Load type icon sprite sheet (only 2 slots)
     LoadSpriteSheet(&sSpriteSheet_TypeIcons);
 
+    // Load stat labels sprite sheet
+    LoadCompressedSpriteSheet(&sStatLabelsSpriteSheet);
+
     // NOTE: Disabled old info panel sprites
     // CreateDisplayMonSprite();
     // CreateMarkingComboSprite();
@@ -4276,6 +4349,10 @@ static void HideInfoPanelSprites(void)
         sStorage->typeIconSprites[1]->invisible = TRUE;
     if (sStorage->shinyIconSprite != NULL)
         sStorage->shinyIconSprite->invisible = TRUE;
+    if (sStorage->statLabelSprites[0] != NULL)
+        sStorage->statLabelSprites[0]->invisible = TRUE;
+    if (sStorage->statLabelSprites[1] != NULL)
+        sStorage->statLabelSprites[1]->invisible = TRUE;
     if (sStorage->markingComboSprite != NULL)
         sStorage->markingComboSprite->invisible = TRUE;
 }
@@ -4578,6 +4655,163 @@ static void UpdateTypeIconsSprite(void)
     }
 }
 
+static void UpdateStatLabelsSprites(void)
+{
+    u16 species = sStorage->displayMon.species;
+    u8 natureUpStat, natureDownStat;
+    u8 upStatAnimIndex, downStatAnimIndex;
+    u8 upStatX, upStatY, downStatX, downStatY;
+    u16 upStatPalTag, downStatPalTag;
+    u8 nature;
+    struct BoxPokemon *boxMon;
+    u8 animIndexMap[NUM_STATS] = {0, 0, 1, 4, 2, 3}; // Maps STAT_HP, STAT_ATK, STAT_DEF, STAT_SPEED, STAT_SPATK, STAT_SPDEF to animation indices
+
+    // Hide sprites if mon info panel is not shown or no mon is selected
+    if (!sStorage->showMonInfo
+        || species == SPECIES_NONE
+        || sStorage->displayMon.isEgg
+        || (GetSpeciesAtCursorPosition() == SPECIES_NONE && !sIsMonBeingMoved))
+    {
+        if (sStorage->statLabelSprites[0] != NULL)
+            sStorage->statLabelSprites[0]->invisible = TRUE;
+        if (sStorage->statLabelSprites[1] != NULL)
+            sStorage->statLabelSprites[1]->invisible = TRUE;
+        return;
+    }
+
+    // Get the Pokemon's nature
+    if (sCursorArea == CURSOR_AREA_IN_BOX)
+    {
+        boxMon = GetBoxedMonPtr(StorageGetCurrentBox(), sCursorPosition);
+    }
+    else if (sCursorArea == CURSOR_AREA_IN_PARTY)
+    {
+        boxMon = &gPlayerParty[sCursorPosition].box;
+    }
+    else
+    {
+        // Moving mon
+        boxMon = &sStorage->movingMon.box;
+    }
+
+    nature = GetNatureFromPersonality(boxMon->personality);
+    natureUpStat = gNaturesInfo[nature].statUp;
+    natureDownStat = gNaturesInfo[nature].statDown;
+
+    // If neutral nature, hide sprites
+    if (natureUpStat == natureDownStat)
+    {
+        if (sStorage->statLabelSprites[0] != NULL)
+            sStorage->statLabelSprites[0]->invisible = TRUE;
+        if (sStorage->statLabelSprites[1] != NULL)
+            sStorage->statLabelSprites[1]->invisible = TRUE;
+        return;
+    }
+
+    // Determine positions based on stat
+    // UP STAT
+    switch (natureUpStat)
+    {
+    case STAT_ATK:
+        upStatX = 64 + (136 * sStorage->monInfoTilemapId);
+        upStatY = 68;
+        upStatAnimIndex = animIndexMap[STAT_ATK];
+        break;
+    case STAT_DEF:
+        upStatX = 12 + (136 * sStorage->monInfoTilemapId);
+        upStatY = 84;
+        upStatAnimIndex = animIndexMap[STAT_DEF];
+        break;
+    case STAT_SPATK:
+        upStatX = 64 + (136 * sStorage->monInfoTilemapId);
+        upStatY = 84;
+        upStatAnimIndex = animIndexMap[STAT_SPATK];
+        break;
+    case STAT_SPDEF:
+        upStatX = 12 + (136 * sStorage->monInfoTilemapId);
+        upStatY = 100;
+        upStatAnimIndex = animIndexMap[STAT_SPDEF];
+        break;
+    case STAT_SPEED:
+        upStatX = 64 + (136 * sStorage->monInfoTilemapId);
+        upStatY = 100;
+        upStatAnimIndex = animIndexMap[STAT_SPEED];
+        break;
+    default:
+        return;
+    }
+
+    // DOWN STAT
+    switch (natureDownStat)
+    {
+    case STAT_ATK:
+        downStatX = 64 + (136 * sStorage->monInfoTilemapId);
+        downStatY = 68;
+        downStatAnimIndex = animIndexMap[STAT_ATK];
+        break;
+    case STAT_DEF:
+        downStatX = 12 + (136 * sStorage->monInfoTilemapId);
+        downStatY = 84;
+        downStatAnimIndex = animIndexMap[STAT_DEF];
+        break;
+    case STAT_SPATK:
+        downStatX = 64 + (136 * sStorage->monInfoTilemapId);
+        downStatY = 84;
+        downStatAnimIndex = animIndexMap[STAT_SPATK];
+        break;
+    case STAT_SPDEF:
+        downStatX = 12 + (136 * sStorage->monInfoTilemapId);
+        downStatY = 100;
+        downStatAnimIndex = animIndexMap[STAT_SPDEF];
+        break;
+    case STAT_SPEED:
+        downStatX = 64 + (136 * sStorage->monInfoTilemapId);
+        downStatY = 100;
+        downStatAnimIndex = animIndexMap[STAT_SPEED];
+        break;
+    default:
+        return;
+    }
+
+    // Set palette tags
+    upStatPalTag = PALTAG_MISC_1;    // For increased stat
+    downStatPalTag = PALTAG_MISC_2;  // For decreased stat
+
+    // Create or update UP STAT sprite
+    if (sStorage->statLabelSprites[0] == NULL)
+    {
+        struct SpriteTemplate template = sSpriteTemplate_StatLabels;
+        template.paletteTag = upStatPalTag;
+        sStorage->statLabelSprites[0] = &gSprites[CreateSprite(&template, upStatX, upStatY, 0)];
+    }
+    else
+    {
+        sStorage->statLabelSprites[0]->x = upStatX;
+        sStorage->statLabelSprites[0]->y = upStatY;
+    }
+    
+    StartSpriteAnim(sStorage->statLabelSprites[0], upStatAnimIndex);
+    sStorage->statLabelSprites[0]->oam.paletteNum = IndexOfSpritePaletteTag(upStatPalTag);
+    sStorage->statLabelSprites[0]->invisible = FALSE;
+
+    // Create or update DOWN STAT sprite
+    if (sStorage->statLabelSprites[1] == NULL)
+    {
+        struct SpriteTemplate template = sSpriteTemplate_StatLabels;
+        template.paletteTag = downStatPalTag;
+        sStorage->statLabelSprites[1] = &gSprites[CreateSprite(&template, downStatX, downStatY, 0)];
+    }
+    else
+    {
+        sStorage->statLabelSprites[1]->x = downStatX;
+        sStorage->statLabelSprites[1]->y = downStatY;
+    }
+    
+    StartSpriteAnim(sStorage->statLabelSprites[1], downStatAnimIndex);
+    sStorage->statLabelSprites[1]->oam.paletteNum = IndexOfSpritePaletteTag(downStatPalTag);
+    sStorage->statLabelSprites[1]->invisible = FALSE;
+}
+
 static void BufferAndPrintStat(u8 windowId, u8 font, u8 xOffset, u8 y, u16 statValue)
 {
     u8 statStr[4];
@@ -4763,6 +4997,7 @@ static bool8 PrintDisplayMonInfo(void)
             break;
         case 1:
             UpdateTypeIconsSprite();
+            UpdateStatLabelsSprites();
             sStorage->displayMonInfoLoadState++;
             break;
         case 2:
@@ -4802,6 +5037,7 @@ static bool8 PrintDisplayMonInfo(void)
     {
         UpdateGenderIconSprite(font);
         UpdateTypeIconsSprite();
+        UpdateStatLabelsSprites();
         UpdateShinyIconSprite();
         UpdateMarkingComboSprite();
         sStorage->displayMonInfoLoadState = 0;
@@ -5082,6 +5318,7 @@ static void UpdateMonInfoTilemap(void)
         sStorage->bg0_Y = 0;
         UpdateGenderIconSprite(FONT_SHORT_NARROW);
         UpdateTypeIconsSprite();
+        UpdateStatLabelsSprites();
         UpdateShinyIconSprite();
         UpdateMarkingComboSprite();
     }
