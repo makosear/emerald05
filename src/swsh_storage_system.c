@@ -256,8 +256,9 @@ enum {
     GFXTAG_ITEM_ICON_0,
     GFXTAG_ITEM_ICON_1, // Used implicitly in CreateItemIconSprites
     GFXTAG_ITEM_ICON_2, // Used implicitly in CreateItemIconSprites
-    GFXTAG_CHOOSE_BOX_MENU,
-    GFXTAG_CHOOSE_BOX_MENU_SIDES, // Used implicitly in LoadChooseBoxMenuGfx
+    GFXTAG_BOX_SELECTION,
+    GFXTAG_BOX_SELECTION_BOX_NAME,
+    GFXTAG_BOX_SELECTION_PER_30,
     GFXTAG_LIST_MENU_ARROW,
     GFXTAG_MARKING_MENU,
     GFXTAG_14, // Unused
@@ -372,12 +373,16 @@ struct ChooseBoxMenu
 {
     struct Sprite *menuSprite;
     struct Sprite *menuSideSprites[4];
+    struct Sprite *textSprite;
+    struct Sprite *textSprite2;
     struct Sprite *arrowSprites[2];
     bool32 loadedPalette;
     u16 tileTag;
     u16 paletteTag;
     u8 curBox;
     u8 subpriority;
+    u8 ALIGNED(4) textTiles[1024];
+    u8 ALIGNED(4) textTiles2[1024];
 };
 
 struct ItemIcon
@@ -622,7 +627,6 @@ static void ChooseBoxMenu_DestroySprites(void);
 static void ChooseBoxMenu_MoveLeft(void);
 static void ChooseBoxMenu_MoveRight(void);
 static void ChooseBoxMenu_PrintInfo(void);
-static void SpriteCB_ChooseBoxArrow(struct Sprite *);
 
 // Options menus
 static void InitMenu(void);
@@ -775,6 +779,7 @@ static bool8 IsCursorOnBoxTitle(void);
 
 // Box name & Scroll arrows
 static void CreateBoxScrollArrows(void);
+static void TriggerArrowAnimation(struct Sprite *);
 static void AnimateBoxScrollArrow(s8);
 static void UpdateBoxTitle(u8);
 static void SpriteCB_Arrow(struct Sprite *);
@@ -1301,22 +1306,7 @@ void ResetPokemonStorageSystem(void)
 
 static void LoadChooseBoxMenuGfx(struct ChooseBoxMenu *menu, u16 tileTag, u16 palTag, u8 subpriority, bool32 loadPal)
 {
-    // Because loadPal is always false, the below palette is never used.
-    struct SpritePalette palette =
-    {
-        sChooseBoxMenu_Pal, palTag
-    };
-    struct SpriteSheet sheets[] =
-    {
-        {sChooseBoxMenuCenter_Gfx, 0x800, tileTag},
-        {sChooseBoxMenuSides_Gfx,  0x180, tileTag + 1},
-        {}
-    };
-
-    if (loadPal) // Always false
-        LoadSpritePalette(&palette);
-
-    LoadSpriteSheets(sheets);
+    LoadCompressedSpriteSheet(&sSpriteSheet_BoxSelection);   
     sChooseBoxMenu = menu;
     menu->tileTag = tileTag;
     menu->paletteTag = palTag;
@@ -1329,7 +1319,8 @@ static void FreeChooseBoxMenu(void)
     if (sChooseBoxMenu->loadedPalette)
         FreeSpritePaletteByTag(sChooseBoxMenu->paletteTag);
     FreeSpriteTilesByTag(sChooseBoxMenu->tileTag);
-    FreeSpriteTilesByTag(sChooseBoxMenu->tileTag + 1);
+    FreeSpriteTilesByTag(GFXTAG_BOX_SELECTION_BOX_NAME);
+    FreeSpriteTilesByTag(GFXTAG_BOX_SELECTION_PER_30);
 }
 
 static void CreateChooseBoxMenuSprites(u8 curBox)
@@ -1374,49 +1365,36 @@ static void ChooseBoxMenu_CreateSprites(u8 curBox)
     u8 spriteId;
     struct SpriteTemplate template;
     struct OamData oamData = {};
-    oamData.size = SPRITE_SIZE(64x64);
+    oamData.shape = SPRITE_SHAPE(32x64);
+    oamData.size = SPRITE_SIZE(32x64);
     oamData.paletteNum = 1;
     template = (struct SpriteTemplate){
-        0, 0, &oamData, gDummySpriteAnimTable, NULL, gDummySpriteAffineAnimTable, SpriteCallbackDummy
+        0, 0, &oamData, sSpriteAnimTable_BoxSelection, NULL, gDummySpriteAffineAnimTable, SpriteCallbackDummy
     };
 
     sChooseBoxMenu->curBox = curBox;
     template.tileTag = sChooseBoxMenu->tileTag;
     template.paletteTag = sChooseBoxMenu->paletteTag;
 
-    spriteId = CreateSprite(&template, 160, 96, 0);
+    spriteId = CreateSprite(&template, 128, 88, 1);
     sChooseBoxMenu->menuSprite = &gSprites[spriteId];
+    StartSpriteAnim(sChooseBoxMenu->menuSprite, 0);
 
-    oamData.shape = SPRITE_SHAPE(8x32);
-    oamData.size = SPRITE_SIZE(8x32);
-    template.tileTag = sChooseBoxMenu->tileTag + 1;
-    template.anims = sAnims_ChooseBoxMenu;
-    for (i = 0; i < ARRAY_COUNT(sChooseBoxMenu->menuSideSprites); i++)
-    {
-        u16 anim;
-        spriteId = CreateSprite(&template, 124, 80, sChooseBoxMenu->subpriority);
-        sChooseBoxMenu->menuSideSprites[i] = &gSprites[spriteId];
-        anim = 0;
-        if (i & 2)
-        {
-            sChooseBoxMenu->menuSideSprites[i]->x = 196;
-            anim = 2;
-        }
-        if (i & 1)
-        {
-            sChooseBoxMenu->menuSideSprites[i]->y = 112;
-            sChooseBoxMenu->menuSideSprites[i]->oam.size = 0;
-            anim++;
-        }
-        StartSpriteAnim(sChooseBoxMenu->menuSideSprites[i], anim);
-    }
+    spriteId = CreateSprite(&template, 160, 88, 1);
+    sChooseBoxMenu->menuSideSprites[0] = &gSprites[spriteId];
+    StartSpriteAnim(sChooseBoxMenu->menuSideSprites[0], 1);
+
+    sChooseBoxMenu->textSprite = NULL;
+    sChooseBoxMenu->textSprite2 = NULL;
+
     for (i = 0; i < ARRAY_COUNT(sChooseBoxMenu->arrowSprites); i++)
     {
-        sChooseBoxMenu->arrowSprites[i] = CreateChooseBoxArrows(72 * i + 124, 88, i, 0, sChooseBoxMenu->subpriority);
+        sChooseBoxMenu->arrowSprites[i] = CreateChooseBoxArrows(42 * i + 123, 73, i, 0, 0);
         if (sChooseBoxMenu->arrowSprites[i])
         {
-            sChooseBoxMenu->arrowSprites[i]->data[0] = (i == 0 ? -1 : 1);
-            sChooseBoxMenu->arrowSprites[i]->callback = SpriteCB_ChooseBoxArrow;
+            sChooseBoxMenu->arrowSprites[i]->data[0] = 0;
+            sChooseBoxMenu->arrowSprites[i]->data[3] = (i == 0 ? -1 : 1);
+            sChooseBoxMenu->arrowSprites[i]->callback = SpriteCB_Arrow;
         }
     }
     ChooseBoxMenu_PrintInfo();
@@ -1430,13 +1408,20 @@ static void ChooseBoxMenu_DestroySprites(void)
         DestroySprite(sChooseBoxMenu->menuSprite);
         sChooseBoxMenu->menuSprite = NULL;
     }
-    for (i = 0; i < ARRAY_COUNT(sChooseBoxMenu->menuSideSprites); i++)
+    if (sChooseBoxMenu->menuSideSprites[0])
     {
-        if (sChooseBoxMenu->menuSideSprites[i])
-        {
-            DestroySprite(sChooseBoxMenu->menuSideSprites[i]);
-            sChooseBoxMenu->menuSideSprites[i] = NULL;
-        }
+        DestroySprite(sChooseBoxMenu->menuSideSprites[0]);
+        sChooseBoxMenu->menuSideSprites[0] = NULL;
+    }
+    if (sChooseBoxMenu->textSprite)
+    {
+        DestroySprite(sChooseBoxMenu->textSprite);
+        sChooseBoxMenu->textSprite = NULL;
+    }
+    if (sChooseBoxMenu->textSprite2)
+    {
+        DestroySprite(sChooseBoxMenu->textSprite2);
+        sChooseBoxMenu->textSprite2 = NULL;
     }
     for (i = 0; i < ARRAY_COUNT(sChooseBoxMenu->arrowSprites); i++)
     {
@@ -1449,12 +1434,14 @@ static void ChooseBoxMenu_MoveRight(void)
 {
     if (++sChooseBoxMenu->curBox >= TOTAL_BOXES_COUNT)
         sChooseBoxMenu->curBox = 0;
+    TriggerArrowAnimation(sChooseBoxMenu->arrowSprites[1]);
     ChooseBoxMenu_PrintInfo();
 }
 
 static void ChooseBoxMenu_MoveLeft(void)
 {
     sChooseBoxMenu->curBox = (sChooseBoxMenu->curBox == 0 ? TOTAL_BOXES_COUNT - 1 : sChooseBoxMenu->curBox - 1);
+    TriggerArrowAnimation(sChooseBoxMenu->arrowSprites[0]);
     ChooseBoxMenu_PrintInfo();
 }
 
@@ -1467,42 +1454,58 @@ static void ChooseBoxMenu_PrintInfo(void)
     u8 numInBox = CountMonsInBox(sChooseBoxMenu->curBox);
     u32 winTileData;
     s32 center;
+    u8 spriteId;
+
+    if (sChooseBoxMenu->textSprite)
+    {
+        DestroySprite(sChooseBoxMenu->textSprite);
+        sChooseBoxMenu->textSprite = NULL;
+    }
+    if (sChooseBoxMenu->textSprite2)
+    {
+        DestroySprite(sChooseBoxMenu->textSprite2);
+        sChooseBoxMenu->textSprite2 = NULL;
+    }
 
     memset(&template, 0, sizeof(template));
     template.width = 8;
     template.height = 4;
 
     windowId = AddWindow(&template);
-    FillWindowPixelBuffer(windowId, PIXEL_FILL(4));
-
-    // Print box name
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
     center = GetStringCenterAlignXOffset(FONT_NORMAL, boxName, 64);
-    AddTextPrinterParameterized3(windowId, FONT_NORMAL, center, 1, sChooseBoxMenu_TextColors, TEXT_SKIP_DRAW, boxName);
+    AddTextPrinterParameterized3(windowId, FONT_NORMAL, center, 1, sTextColors[2], TEXT_SKIP_DRAW, boxName);
 
-    // Print #/30 for number of Pokémon in the box
+    winTileData = GetWindowAttribute(windowId, WINDOW_TILE_DATA);
+    CpuCopy32((void *)winTileData, sChooseBoxMenu->textTiles, 0x400);
+    RemoveWindow(windowId);
+
+    FreeSpriteTilesByTag(GFXTAG_BOX_SELECTION_BOX_NAME);
+    struct SpriteSheet spriteSheet = {sChooseBoxMenu->textTiles, 0x400, GFXTAG_BOX_SELECTION_BOX_NAME};
+    LoadSpriteSheet(&spriteSheet);
+    spriteId = CreateSprite(&sSpriteTemplate_BoxSelectionText, 144, 104, 0);
+    sChooseBoxMenu->textSprite = &gSprites[spriteId];
+
+    memset(&template, 0, sizeof(template));
+    template.width = 8;
+    template.height = 4;
+
+    windowId = AddWindow(&template);
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
     ConvertIntToDecimalStringN(numBoxMonsText, numInBox, STR_CONV_MODE_RIGHT_ALIGN, 2);
     StringAppend(numBoxMonsText, sText_OutOf30);
     center = GetStringCenterAlignXOffset(FONT_NORMAL, numBoxMonsText, 64);
-    AddTextPrinterParameterized3(windowId, FONT_NORMAL, center, 17, sChooseBoxMenu_TextColors, TEXT_SKIP_DRAW, numBoxMonsText);
+    AddTextPrinterParameterized3(windowId, FONT_NORMAL, center, 1, sTextColors[2], TEXT_SKIP_DRAW, numBoxMonsText);
 
     winTileData = GetWindowAttribute(windowId, WINDOW_TILE_DATA);
-    CpuCopy32((void *)winTileData, (void *)OBJ_VRAM0 + 0x100 + (GetSpriteTileStartByTag(sChooseBoxMenu->tileTag) * 32), 0x400);
-
+    CpuCopy32((void *)winTileData, sChooseBoxMenu->textTiles2, 0x400);
     RemoveWindow(windowId);
-}
 
-static void SpriteCB_ChooseBoxArrow(struct Sprite *sprite)
-{
-    if (++sprite->data[1] > 3)
-    {
-        sprite->data[1] = 0;
-        sprite->x2 += sprite->data[0];
-        if (++sprite->data[2] > 5)
-        {
-            sprite->data[2] = 0;
-            sprite->x2 = 0;
-        }
-    }
+    FreeSpriteTilesByTag(GFXTAG_BOX_SELECTION_PER_30);
+    spriteSheet = (struct SpriteSheet){sChooseBoxMenu->textTiles2, 0x400, GFXTAG_BOX_SELECTION_PER_30};
+    LoadSpriteSheet(&spriteSheet);
+    spriteId = CreateSprite(&sSpriteTemplate_BoxSelectionText2, 144, 80, 0);
+    sChooseBoxMenu->textSprite2 = &gSprites[spriteId];
 }
 
 
@@ -2423,7 +2426,7 @@ static void Task_DepositMenu(u8 taskId)
     {
     case 0:
         PrintMessage(MSG_DEPOSIT_IN_WHICH_BOX);
-        LoadChooseBoxMenuGfx(&sStorage->chooseBoxMenu, GFXTAG_CHOOSE_BOX_MENU, PALTAG_MISC_2, 3, FALSE);
+        LoadChooseBoxMenuGfx(&sStorage->chooseBoxMenu, GFXTAG_BOX_SELECTION, PALTAG_MISC_3, 3, FALSE);
         CreateChooseBoxMenuSprites(sDepositBoxId);
         sStorage->state++;
         break;
@@ -3063,7 +3066,7 @@ static void Task_JumpBox(u8 taskId)
     {
     case 0:
         PrintMessage(MSG_JUMP_TO_WHICH_BOX);
-        LoadChooseBoxMenuGfx(&sStorage->chooseBoxMenu, GFXTAG_CHOOSE_BOX_MENU, PALTAG_MISC_2, 3, FALSE);
+        LoadChooseBoxMenuGfx(&sStorage->chooseBoxMenu, GFXTAG_BOX_SELECTION, PALTAG_MISC_3, 3, FALSE);
         CreateChooseBoxMenuSprites(StorageGetCurrentBox());
         sStorage->state++;
         break;
@@ -5591,16 +5594,22 @@ static void CreateBoxScrollArrows(void)
     }
 }
 
+static void TriggerArrowAnimation(struct Sprite *sprite)
+{
+    if (sprite)
+    {
+        sprite->x2 = 0;
+        sprite->sState = 1;
+        sprite->sTimer = 0;
+        sprite->data[2] = 0;
+    }
+}
+
 // Trigger one-shot animation for the arrow in the given direction
 static void AnimateBoxScrollArrow(s8 direction)
 {
     u8 arrowIdx = (direction < 0) ? 0 : 1; // 0 = Left, 1 = Right
-    if (sStorage->arrowSprites[arrowIdx])
-    {
-        sStorage->arrowSprites[arrowIdx]->sState = 1;
-        sStorage->arrowSprites[arrowIdx]->sTimer = 0;
-        sStorage->arrowSprites[arrowIdx]->data[2] = 0;
-    }
+    TriggerArrowAnimation(sStorage->arrowSprites[arrowIdx]);
 }
 
 static void SpriteCB_Arrow(struct Sprite *sprite)
@@ -5639,6 +5648,7 @@ static struct Sprite *CreateChooseBoxArrows(u16 x, u16 y, u8 animId, u8 priority
     animId %= 2;
     StartSpriteAnim(&gSprites[spriteId], animId);
     gSprites[spriteId].oam.priority = priority;
+    gSprites[spriteId].oam.paletteNum = IndexOfSpritePaletteTag(PALTAG_MISC_2);
     gSprites[spriteId].callback = SpriteCallbackDummy;
     return &gSprites[spriteId];
 }
@@ -8927,7 +8937,7 @@ static bool8 UpdateItemInfoWindowSlideIn(void)
     sStorage->itemInfoWindowOffset--;
     pos = 21 - sStorage->itemInfoWindowOffset;
     for (i = 0; i < pos; i++)
-        WriteSequenceToBgTilemapBuffer(0, GetBgAttribute(0, BG_ATTR_BASETILE) + 0x14 + sStorage->itemInfoWindowOffset + i, i, 13, 1, 7, 15, 21);
+        WriteSequenceToBgTilemapBuffer(0, GetBgAttribute(0, BG_ATTR_BASETILE) + 0x2C + sStorage->itemInfoWindowOffset + i, i, 13, 1, 7, 15, 21);
 
     DrawItemInfoWindow(pos);
     return (sStorage->itemInfoWindowOffset != 0);
@@ -8947,7 +8957,7 @@ static bool8 UpdateItemInfoWindowSlideOut(void)
     pos = 21 - sStorage->itemInfoWindowOffset;
     for (i = 0; i < pos; i++)
     {
-        WriteSequenceToBgTilemapBuffer(0, GetBgAttribute(0, BG_ATTR_BASETILE) + 0x14 + sStorage->itemInfoWindowOffset + i, i, 13, 1, 7, 15, 21);
+        WriteSequenceToBgTilemapBuffer(0, GetBgAttribute(0, BG_ATTR_BASETILE) + 0x2C + sStorage->itemInfoWindowOffset + i, i, 13, 1, 7, 15, 21);
     }
 
     if (pos >= 0)

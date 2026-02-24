@@ -54,20 +54,11 @@ static const u32 sSwShStorage_BG1_Tilemap[]   = INCBIN_U32("graphics/pokemon_sto
 static const u32 sSwShStorage_BG2_Tilemap[]   = INCBIN_U32("graphics/pokemon_storage/swsh/bg2.bin.smolTM");
 static const u32 sMonInfo_Gfx[]               = INCBIN_U32("graphics/pokemon_storage/swsh/mon_info.4bpp.smol");
 static const u32 sMonInfo_Tilemap[]           = INCBIN_U32("graphics/pokemon_storage/swsh/mon_info.bin.smolTM");
-
-static const u16 sChooseBoxMenu_Pal[]         = INCBIN_U16("graphics/pokemon_storage/box_selection_popup.gbapal");
-static const u8 sChooseBoxMenuCenter_Gfx[]    = INCBIN_U8("graphics/pokemon_storage/box_selection_popup_center.4bpp");
-static const u8 sChooseBoxMenuSides_Gfx[]     = INCBIN_U8("graphics/pokemon_storage/box_selection_popup_sides.4bpp");
-static const u16 sDisplayMenu_Pal[]           = INCBIN_U16("graphics/pokemon_storage/display_menu.gbapal"); // Unused
-static const u32 sDisplayMenu_Tilemap[]       = INCBIN_U32("graphics/pokemon_storage/display_menu.bin.smolTM");
-static const u16 sPkmnData_Tilemap[]          = INCBIN_U16("graphics/pokemon_storage/pkmn_data.bin");
-static const u16 sInterface_Pal[]             = INCBIN_U16("graphics/pokemon_storage/interface.gbapal");
-static const u16 sCloseBoxButton_Tilemap[]    = INCBIN_U16("graphics/pokemon_storage/close_box_button.bin");
-static const u16 sUnused_Pal[]                = INCBIN_U16("graphics/pokemon_storage/unused.gbapal");
 static const u16 sTextWindows_Pal[]           = INCBIN_U16("graphics/pokemon_storage/swsh/text_windows.gbapal");
 
 static const u32 sCursor_Gfx[]                = INCBIN_U32("graphics/pokemon_storage/swsh/cursor.4bpp.smol");
 static const u16 sCursor_Pal[]                = INCBIN_U16("graphics/pokemon_storage/swsh/cursor.gbapal");
+static const u32 sBoxSelection_Gfx[]          = INCBIN_U32("graphics/pokemon_storage/swsh/box_selection.4bpp.smol");
 static const u32 sBoxTitleFrame_Gfx[]         = INCBIN_U32("graphics/pokemon_storage/swsh/box_title_frame.4bpp.smol");
 static const u32 sBoxTitleArrow_Gfx[]         = INCBIN_U32("graphics/pokemon_storage/swsh/box_title_arrow.4bpp.smol");
 static const u32 sGenderIcons_Gfx[]           = INCBIN_U32("graphics/pokemon_storage/swsh/gender_icons.4bpp.smol");
@@ -77,7 +68,7 @@ static const ALIGNED(4) u8 sTypeIcons_Gfx[]   = INCBIN_U8("graphics/pokemon_stor
 static const u16 sTypeIcons_Pal[]             = INCBIN_U16("graphics/pokemon_storage/swsh/type_icons.gbapal");
 static const u16 sMarkings_Pal[]              = INCBIN_U16("graphics/pokemon_storage/swsh/markings.gbapal");
 
-static const u32 sItemInfoFrame_Gfx[]         = INCBIN_U32("graphics/pokemon_storage/item_info_frame.4bpp");
+static const u32 sItemInfoFrame_Gfx[]         = INCBIN_U32("graphics/pokemon_storage/swsh/item_info_frame.4bpp");
 
 // ============================================================================
 // Graphics - Wallpapers
@@ -459,9 +450,9 @@ static const u8 sTextColors[][3] =
 {
     {1, 2, 3}, // Standard menus, mon info (stats, ability, item)
     {4, 2, 5}, // Mon info (nickname and level) (grey BG)
+    {0, 4, 7}, // Choose box menu
 };
 
-static const u8 sChooseBoxMenu_TextColors[] = {TEXT_COLOR_RED, TEXT_DYNAMIC_COLOR_6, TEXT_DYNAMIC_COLOR_5};
 
 // ============================================================================
 // BG Templates
@@ -511,48 +502,97 @@ static const struct BgTemplate sBgTemplates[] =
 // Choose Box Menu Sprites
 // ============================================================================
 
-static const union AnimCmd sAnim_ChooseBoxMenu_TopLeft[] =
+static const struct OamData sOamData_BoxSelection =
 {
-    ANIMCMD_FRAME(0, 5),
+    .y = 0,
+    .affineMode = ST_OAM_AFFINE_OFF,
+    .objMode = ST_OAM_OBJ_NORMAL,
+    .mosaic = FALSE,
+    .bpp = ST_OAM_4BPP,
+    .size = SPRITE_SIZE(32x64),
+    .x = 0,
+    .matrixNum = 0,
+    .shape = SPRITE_SHAPE(32x64),
+    .tileNum = 0,
+    .priority = 0,
+    .paletteNum = 0,
+    .affineParam = 0,
+};
+
+static const union AnimCmd sSpriteAnim_BoxSelectionLeft[] = {
+    ANIMCMD_FRAME(0, 0, FALSE, FALSE),
     ANIMCMD_END
 };
 
-static const union AnimCmd sAnim_ChooseBoxMenu_BottomLeft[] =
-{
-    ANIMCMD_FRAME(4, 5),
+static const union AnimCmd sSpriteAnim_BoxSelectionRight[] = {
+    ANIMCMD_FRAME(0, 0, TRUE, FALSE),
     ANIMCMD_END
 };
 
-static const union AnimCmd sAnim_ChooseBoxMenu_TopRight[] =
-{
-    ANIMCMD_FRAME(6, 5),
-    ANIMCMD_END
+static const union AnimCmd *const sSpriteAnimTable_BoxSelection[] = {
+    sSpriteAnim_BoxSelectionLeft,
+    sSpriteAnim_BoxSelectionRight,
 };
 
-static const union AnimCmd sAnim_ChooseBoxMenu_BottomRight[] =
+static const struct CompressedSpriteSheet sSpriteSheet_BoxSelection =
 {
-    ANIMCMD_FRAME(10, 5),
-    ANIMCMD_END
+    .data = sBoxSelection_Gfx,
+    .size = (32 * 64) / 2,
+    .tag = GFXTAG_BOX_SELECTION,
 };
 
-static const union AnimCmd *const sAnims_ChooseBoxMenu[] =
+static const struct SpriteTemplate sSpriteTemplate_BoxSelection =
 {
-    sAnim_ChooseBoxMenu_TopLeft,
-    sAnim_ChooseBoxMenu_BottomLeft,
-    sAnim_ChooseBoxMenu_TopRight,
-    sAnim_ChooseBoxMenu_BottomRight
+    .tileTag = GFXTAG_BOX_SELECTION,
+    .paletteTag = PALTAG_MISC_3,
+    .oam = &sOamData_BoxSelection,
+    .anims = sSpriteAnimTable_BoxSelection,
+    .images = NULL,
+    .affineAnims = gDummySpriteAffineAnimTable,
+    .callback = SpriteCallbackDummy,
 };
 
-static const union AffineAnimCmd sAffineAnim_ChooseBoxMenu[] =
+// ============================================================================
+// Box Selection Text Overlay Sprite (loaded dynamically like BOX_TITLE)
+// ============================================================================
+
+static const struct OamData sOamData_BoxSelectionText =
 {
-    AFFINEANIMCMD_FRAME(0xE0, 0xE0, 0, 0),
-    AFFINEANIMCMD_END
+    .y = 0,
+    .affineMode = ST_OAM_AFFINE_OFF,
+    .objMode = ST_OAM_OBJ_NORMAL,
+    .mosaic = FALSE,
+    .bpp = ST_OAM_4BPP,
+    .size = SPRITE_SIZE(64x32),
+    .x = 0,
+    .matrixNum = 0,
+    .shape = SPRITE_SHAPE(64x32),
+    .tileNum = 0,
+    .priority = 0,
+    .paletteNum = 0,
+    .affineParam = 0,
 };
 
-// Unused
-static const union AffineAnimCmd *const sAffineAnims_ChooseBoxMenu[] =
+static const struct SpriteTemplate sSpriteTemplate_BoxSelectionText =
 {
-    sAffineAnim_ChooseBoxMenu
+    .tileTag = GFXTAG_BOX_SELECTION_BOX_NAME,
+    .paletteTag = PALTAG_MISC_3,
+    .oam = &sOamData_BoxSelectionText,
+    .anims = gDummySpriteAnimTable,
+    .images = NULL,
+    .affineAnims = gDummySpriteAffineAnimTable,
+    .callback = SpriteCallbackDummy,
+};
+
+static const struct SpriteTemplate sSpriteTemplate_BoxSelectionText2 =
+{
+    .tileTag = GFXTAG_BOX_SELECTION_PER_30,
+    .paletteTag = PALTAG_MISC_3,
+    .oam = &sOamData_BoxSelectionText,
+    .anims = gDummySpriteAnimTable,
+    .images = NULL,
+    .affineAnims = gDummySpriteAffineAnimTable,
+    .callback = SpriteCallbackDummy,
 };
 
 // ============================================================================
