@@ -570,6 +570,7 @@ EWRAM_DATA static u16 sMovingItemId = 0;
 EWRAM_DATA static struct Pokemon sSavedMovingMon = {0};
 EWRAM_DATA static s8 sCursorArea = 0;
 EWRAM_DATA static s8 sCursorPosition = 0;
+EWRAM_DATA static u8 sLastBoxColumn = 0;
 EWRAM_DATA static bool8 sIsMonBeingMoved = 0;
 EWRAM_DATA static u8 sMovingMonOrigBoxId = 0;
 EWRAM_DATA static u8 sMovingMonOrigBoxPos = 0;
@@ -6952,6 +6953,7 @@ static u8 InBoxInput_Normal(void)
             }
             else
             {
+                sLastBoxColumn = sCursorPosition % IN_BOX_COLUMNS;
                 cursorArea = CURSOR_AREA_BOX_TITLE;
                 cursorPosition = 0;
             }
@@ -6963,6 +6965,7 @@ static u8 InBoxInput_Normal(void)
             cursorPosition += IN_BOX_COLUMNS;
             if (cursorPosition >= IN_BOX_COUNT)
             {
+                sLastBoxColumn = sCursorPosition % IN_BOX_COLUMNS;
                 cursorArea = CURSOR_AREA_BOX_TITLE;
                 cursorPosition = 0;
                 sStorage->cursorVerticalWrap = 1;
@@ -7440,7 +7443,7 @@ static u8 HandleInput_OnBox(void)
         {
             retVal = INPUT_MOVE_CURSOR;
             cursorArea = CURSOR_AREA_IN_BOX;
-            cursorPosition = IN_BOX_COUNT - 1 - (IN_BOX_COLUMNS / 2);
+            cursorPosition = IN_BOX_COUNT - IN_BOX_COLUMNS + sLastBoxColumn;
             sStorage->cursorVerticalWrap = -1;
             break;
         }
@@ -7448,7 +7451,7 @@ static u8 HandleInput_OnBox(void)
         {
             retVal = INPUT_MOVE_CURSOR;
             cursorArea = CURSOR_AREA_IN_BOX;
-            cursorPosition = 2;
+            cursorPosition = sLastBoxColumn;
             break;
         }
 
