@@ -588,7 +588,7 @@ static void Task_HandleBoxOptions(u8);
 static void Task_OnSelectedMon(u8);
 static void Task_OnCloseBoxPressed(u8);
 static void Task_HidePartyPokemon(u8);
-static void Task_DepositMenu(u8);
+static void Task_DepositMon(u8);
 static void Task_MoveMon(u8);
 static void Task_GiveMovingItemToMon(u8);
 static void Task_SwitchSelectedItem(u8);
@@ -662,8 +662,6 @@ static void SetMovingMonData(u8, u8);
 static void SetPlacedMonData(u8, u8);
 static void PurgeMonOrBoxMon(u8, u8);
 static void SetShiftedMonData(u8, u8);
-static bool8 TryStorePartyMonInBox(u8);
-static void ResetSelectionAfterDeposit(void);
 static void InitReleaseMon(void);
 static bool8 TryHideReleaseMon(void);
 static void InitCanReleaseMonVars(void);
@@ -763,6 +761,7 @@ static bool8 UpdateCursorPos(void);
 static void DoCursorNewPosUpdate(void);
 static void SetCursorInParty(void);
 static void SetCursorBoxPosition(u8);
+static void SetCursorPosition(u8, u8);
 static void ClearSavedCursorPos(void);
 static void SaveCursorPos(void);
 static u8 GetSavedCursorPos(void);
@@ -846,13 +845,10 @@ static void PrintDisplayMonHeldItem(u8);
 static void PrintDisplayMonNickname(u8);
 static void PrintDisplayMonLevel(u8);
 static bool8 PrintDisplayMonInfo(void);
-// static void SetPartySlotTilemaps(void);
 static void FreePokeStorageData(void);
-// static void UpdatePartySlotColors(void);
 static bool8 InitPokeStorageWindows(void);
 static void ShowYesNoWindow(s8);
 static void PrintMessage(u8 id);
-// static void SetPartySlotTilemap(u8, bool8);
 
 // Tilemap utility
 static void TilemapUtil_Move(u8, u8, s8);
@@ -1919,7 +1915,7 @@ static void Task_PokeStorageMain(u8 taskId)
                 else
                 {
                     PlaySE(SE_SELECT);
-                    SetPokeStorageTask(Task_DepositMenu);
+                    SetPokeStorageTask(Task_DepositMon);
                 }
             }
             else
@@ -2227,7 +2223,7 @@ static void Task_OnSelectedMon(u8 taskId)
             {
                 PlaySE(SE_SELECT);
                 ClearBottomWindow();
-                SetPokeStorageTask(Task_DepositMenu);
+                SetPokeStorageTask(Task_DepositMon);
             }
             break;
         case MENU_RELEASE:
@@ -2422,9 +2418,10 @@ static void Task_WithdrawMon(u8 taskId)
     }
 }
 
-static void Task_DepositMenu(u8 taskId)
+static void Task_DepositMon(u8 taskId)
 {
     u8 boxId;
+    s16 boxPosition;
 
     switch (sStorage->state)
     {
@@ -2447,37 +2444,119 @@ static void Task_DepositMenu(u8 taskId)
             SetPokeStorageTask(Task_PokeStorageMain);
             break;
         default:
-            if (TryStorePartyMonInBox(boxId))
+            if (GetFirstFreeBoxSpot(boxId) == -1)
             {
-                sDepositBoxId = boxId;
-                ClearBottomWindow();
-                DestroyChooseBoxMenuSprites();
-                FreeChooseBoxMenu();
-                sStorage->state = 2;
+                PrintMessage(MSG_BOX_IS_FULL);
+                sStorage->state = 14;
             }
             else
             {
-                PrintMessage(MSG_BOX_IS_FULL);
-                sStorage->state = 4;
+                sDepositBoxId = boxId;
+                sStorage->newCurrBoxId = boxId;
+                ClearBottomWindow();
+                DestroyChooseBoxMenuSprites();
+                FreeChooseBoxMenu();
+                sStorage->state++;
             }
             break;
         }
         break;
     case 2:
+        SaveCursorPos();
+        InitMonPlaceChange(CHANGE_GRAB);
+        sStorage->state++;
+        break;
+    case 3:
+        if (!DoMonPlaceChange())
+        {
+            SetMovingMonPriority(1);
+            sStorage->state++;
+        }
+        break;
+    case 4:
         CompactPartySlots();
         CompactPartySprites();
         sStorage->state++;
         break;
-    case 3:
+    case 5:
         if (GetNumPartySpritesCompacting() == 0)
         {
-            ResetSelectionAfterDeposit();
-            RefreshDisplayMonData();
-            // UpdatePartySlotColors();
-            SetPokeStorageTask(Task_PokeStorageMain);
+            sStorage->state++;
         }
         break;
-    case 4:
+    case 6:
+        if (sStorage->newCurrBoxId == StorageGetCurrentBox())
+        {
+            sStorage->state = 8;
+        }
+        else
+        {
+            SetUpScrollToBox(sStorage->newCurrBoxId);
+            sStorage->state++;
+        }
+        break;
+    case 7:
+        if (!ScrollToBox())
+        {
+            SetCurrentBox(sStorage->newCurrBoxId);
+            sStorage->state++;
+        }
+        break;
+    case 8:
+        boxPosition = GetFirstFreeBoxSpot(sStorage->newCurrBoxId);
+        if (boxPosition == -1)
+        {
+            PrintMessage(MSG_BOX_IS_FULL);
+            sStorage->state = 14;
+        }
+        else
+        {
+            SetCursorBoxPosition(boxPosition);
+            sStorage->state++;
+        }
+        break;
+    case 9:
+        if (!UpdateCursorPos())
+        {
+            InitMonPlaceChange(CHANGE_PLACE);
+            sStorage->state++;
+        }
+        break;
+    case 10:
+        if (!DoMonPlaceChange())
+        {
+            sStorage->state++;
+        }
+        break;
+    case 11:
+        {
+            u8 partyCount = CalculatePlayerPartyCount();
+            u8 savedPos = GetSavedCursorPos();
+            u8 returnPos;
+
+            if (savedPos < partyCount)
+                returnPos = savedPos;
+            else if (partyCount > 0)
+                returnPos = partyCount - 1;
+            else
+                returnPos = 0;
+
+            SetCursorPosition(CURSOR_AREA_IN_PARTY, returnPos);
+            sStorage->state++;
+        }
+        break;
+    case 12:
+        if (!UpdateCursorPos())
+        {
+            RefreshDisplayMonData();
+            sStorage->state++;
+        }
+        break;
+    case 13:
+        StartSpriteAnim(sStorage->cursorSprite, CURSOR_ANIM_BOUNCE);
+        SetPokeStorageTask(Task_PokeStorageMain);
+        break;
+    case 14:
         if (JOY_NEW(A_BUTTON | B_BUTTON | DPAD_ANY))
         {
             PrintMessage(MSG_DEPOSIT_IN_WHICH_BOX);
@@ -2566,7 +2645,6 @@ static void Task_ReleaseMon(u8 taskId)
         {
             RefreshDisplayMon();
             RefreshDisplayMonData();
-            // UpdatePartySlotColors();
             sStorage->state++;
         }
         break;
@@ -2940,7 +3018,6 @@ static void Task_HandleMovingMonFromParty(u8 taskId)
     case 1:
         if (GetNumPartySpritesCompacting() == 0)
         {
-            // UpdatePartySlotColors();
             SetPokeStorageTask(Task_PokeStorageMain);
         }
         break;
@@ -4835,24 +4912,6 @@ static void SpriteCB_MovePartyMonToNextSlot(struct Sprite *sprite)
 #undef sSpeedY
 #undef sMoveSteps
 
-static void DestroyMovingMonIcon(void)
-{
-    if (sStorage->movingMonSprite != NULL)
-    {
-        DestroyBoxMonIcon(sStorage->movingMonSprite);
-        sStorage->movingMonSprite = NULL;
-    }
-}
-
-static void DestroyPartyMonIcon(u8 partyId)
-{
-    if (sStorage->partySprites[partyId] != NULL)
-    {
-        DestroyBoxMonIcon(sStorage->partySprites[partyId]);
-        sStorage->partySprites[partyId] = NULL;
-    }
-}
-
 static void SetPartyMonIconObjMode(u8 partyId, u8 objMode)
 {
     if (sStorage->partySprites[partyId] != NULL)
@@ -6253,38 +6312,6 @@ static void SetShiftedMonData(u8 boxId, u8 position)
     SetDisplayMonData(&sStorage->movingMon, MODE_PARTY);
     sMovingMonOrigBoxId = boxId;
     sMovingMonOrigBoxPos = position;
-}
-
-static bool8 TryStorePartyMonInBox(u8 boxId)
-{
-    s16 boxPosition = GetFirstFreeBoxSpot(boxId);
-    if (boxPosition == -1)
-        return FALSE;
-
-    if (sIsMonBeingMoved)
-    {
-        SetPlacedMonData(boxId, boxPosition);
-        DestroyMovingMonIcon();
-        sIsMonBeingMoved = FALSE;
-    }
-    else
-    {
-        SetMovingMonData(TOTAL_BOXES_COUNT, sCursorPosition);
-        SetPlacedMonData(boxId, boxPosition);
-        DestroyPartyMonIcon(sCursorPosition);
-    }
-
-    if (boxId == StorageGetCurrentBox())
-        CreateBoxMonIconAtPos(boxPosition);
-
-    StartSpriteAnim(sStorage->cursorSprite, CURSOR_ANIM_MAIN);
-    return TRUE;
-}
-
-static void ResetSelectionAfterDeposit(void)
-{
-    StartSpriteAnim(sStorage->cursorSprite, CURSOR_ANIM_BOUNCE);
-    TryRefreshDisplayMon();
 }
 
 static void InitReleaseMon(void)
