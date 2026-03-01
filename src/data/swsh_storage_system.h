@@ -23,6 +23,7 @@ enum {
     WALLPAPER_DRAGON,
     WALLPAPER_DARK,
     WALLPAPER_FAIRY,
+    WALLPAPER_STELLAR,
     WALLPAPER_COUNT
 };
 #define MAX_DEFAULT_WALLPAPER WALLPAPER_FLYING
@@ -150,6 +151,10 @@ static const u32 sWallpaperTiles_Fairy[]      = INCBIN_U32("graphics/pokemon_sto
 static const u32 sWallpaperTilemap_Fairy[]    = INCBIN_U32("graphics/pokemon_storage/swsh/wallpapers/fairy.bin.smolTM");
 static const u16 sWallpaperPalette_Fairy[]    = INCBIN_U16("graphics/pokemon_storage/swsh/wallpapers/fairy.gbapal");
 
+static const u32 sWallpaperTiles_Stellar[]      = INCBIN_U32("graphics/pokemon_storage/swsh/wallpapers/stellar.4bpp.smol");
+static const u32 sWallpaperTilemap_Stellar[]    = INCBIN_U32("graphics/pokemon_storage/swsh/wallpapers/stellar.bin.smolTM");
+static const u16 sWallpaperPalette_Stellar[]    = INCBIN_U16("graphics/pokemon_storage/swsh/wallpapers/stellar.gbapal");
+
 #define WALLPAPER_ENTRY(name) {sWallpaperTiles_##name, sWallpaperTilemap_##name, sWallpaperPalette_##name}
 
 static const struct Wallpaper sSwShWallpapers[] =
@@ -173,6 +178,7 @@ static const struct Wallpaper sSwShWallpapers[] =
     [WALLPAPER_DRAGON]   = WALLPAPER_ENTRY(Dragon),
     [WALLPAPER_DARK]     = WALLPAPER_ENTRY(Dark),
     [WALLPAPER_FAIRY]    = WALLPAPER_ENTRY(Fairy),
+    [WALLPAPER_STELLAR]  = WALLPAPER_ENTRY(Stellar),
 };
 
 // ============================================================================
@@ -220,25 +226,27 @@ static const u8 *const sMenuTexts[] =
     [MENU_SWITCH]     = COMPOUND_STRING("SWITCH"),
     [MENU_BAG]        = COMPOUND_STRING("BAG"),
     [MENU_INFO]       = COMPOUND_STRING("INFO"),
-    [MENU_BASE]       = COMPOUND_STRING("Default"),
-    [MENU_NORMAL]     = COMPOUND_STRING("Normal"),
-    [MENU_FIGHTING]   = COMPOUND_STRING("Fighting"),
-    [MENU_FLYING]     = COMPOUND_STRING("Flying"),
-    [MENU_POISON]     = COMPOUND_STRING("Poison"),
-    [MENU_GROUND]     = COMPOUND_STRING("Ground"),
-    [MENU_ROCK]       = COMPOUND_STRING("Rock"),
-    [MENU_BUG]        = COMPOUND_STRING("Bug"),
-    [MENU_GHOST]      = COMPOUND_STRING("Ghost"),
-    [MENU_STEEL]      = COMPOUND_STRING("Steel"),
-    [MENU_FIRE]       = COMPOUND_STRING("Fire"),
-    [MENU_WATER]      = COMPOUND_STRING("Water"),
-    [MENU_GRASS]      = COMPOUND_STRING("Grass"),
-    [MENU_ELECTRIC]   = COMPOUND_STRING("Electric"),
-    [MENU_PSYCHIC]    = COMPOUND_STRING("Psychic"),
-    [MENU_ICE]        = COMPOUND_STRING("Ice"),
-    [MENU_DRAGON]     = COMPOUND_STRING("Dragon"),
-    [MENU_DARK]       = COMPOUND_STRING("Dark"),
-    [MENU_FAIRY]      = COMPOUND_STRING("Fairy"),
+    [MENU_BASE]       = COMPOUND_STRING("DEFAULT"),
+    [MENU_NORMAL]     = COMPOUND_STRING("NORMAL"),
+    [MENU_FIGHTING]   = COMPOUND_STRING("FIGHTING"),
+    [MENU_FLYING]     = COMPOUND_STRING("FLYING"),
+    [MENU_POISON]     = COMPOUND_STRING("POISON"),
+    [MENU_GROUND]     = COMPOUND_STRING("GROUND"),
+    [MENU_ROCK]       = COMPOUND_STRING("ROCK"),
+    [MENU_BUG]        = COMPOUND_STRING("BUG"),
+    [MENU_GHOST]      = COMPOUND_STRING("GHOST"),
+    [MENU_STEEL]      = COMPOUND_STRING("STEEL"),
+    [MENU_FIRE]       = COMPOUND_STRING("FIRE"),
+    [MENU_WATER]      = COMPOUND_STRING("WATER"),
+    [MENU_GRASS]      = COMPOUND_STRING("GRASS"),
+    [MENU_ELECTRIC]   = COMPOUND_STRING("ELECTRIC"),
+    [MENU_PSYCHIC]    = COMPOUND_STRING("PSYCHIC"),
+    [MENU_ICE]        = COMPOUND_STRING("ICE"),
+    [MENU_DRAGON]     = COMPOUND_STRING("DRAGON"),
+    [MENU_DARK]       = COMPOUND_STRING("DARK"),
+    [MENU_FAIRY]      = COMPOUND_STRING("FAIRY"),
+    [MENU_STELLAR]    = COMPOUND_STRING("STELLAR"),
+    [MENU_COUNT]      = gText_EmptyString2,
 };
 
 // ============================================================================

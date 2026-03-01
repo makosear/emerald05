@@ -160,6 +160,8 @@ enum {
     MENU_DRAGON,
     MENU_DARK,
     MENU_FAIRY,
+    MENU_STELLAR,
+    MENU_COUNT,
 };
 
 #define GENDER_MASK 0x7FFF
@@ -1725,7 +1727,7 @@ static void Task_InitPokeStorage(u8 taskId)
     case 11:
         // Alpha blend BG2 with BG3
         SetGpuReg(REG_OFFSET_BLDCNT, BLDCNT_TGT1_BG2 | BLDCNT_EFFECT_BLEND | BLDCNT_TGT2_BG3);
-        SetGpuReg(REG_OFFSET_BLDALPHA, BLDALPHA_BLEND(12, 4));
+        SetGpuReg(REG_OFFSET_BLDALPHA, BLDALPHA_BLEND(10, 6));
         SetMonIconTransparency();
         if (!sStorage->isReopening)
         {
@@ -4329,7 +4331,7 @@ static void AddWallpaperMenu(void)
     u16 i;
 
     InitMenu();
-    for (i = MENU_BASE; i <= MENU_FAIRY; i++)
+    for (i = MENU_BASE; i < MENU_COUNT; i++)
     {
         SetMenuText(i);
     }
