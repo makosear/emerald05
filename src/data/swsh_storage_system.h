@@ -226,6 +226,7 @@ static const u8 *const sMenuTexts[] =
     [MENU_SWITCH]     = COMPOUND_STRING("SWITCH"),
     [MENU_BAG]        = COMPOUND_STRING("BAG"),
     [MENU_INFO]       = COMPOUND_STRING("INFO"),
+    [MENU_SELECT]     = COMPOUND_STRING("SELECT"),
     [MENU_BASE]       = COMPOUND_STRING("DEFAULT"),
     [MENU_NORMAL]     = COMPOUND_STRING("NORMAL"),
     [MENU_FIGHTING]   = COMPOUND_STRING("FIGHTING"),
@@ -555,9 +556,6 @@ static const struct SpriteTemplate sSpriteTemplate_BoxSelection =
     .paletteTag = PALTAG_MISC_3,
     .oam = &sOamData_BoxSelection,
     .anims = sSpriteAnimTable_BoxSelection,
-    .images = NULL,
-    .affineAnims = gDummySpriteAffineAnimTable,
-    .callback = SpriteCallbackDummy,
 };
 
 // ============================================================================
@@ -586,10 +584,6 @@ static const struct SpriteTemplate sSpriteTemplate_BoxSelectionText =
     .tileTag = GFXTAG_BOX_SELECTION_BOX_NAME,
     .paletteTag = PALTAG_MISC_3,
     .oam = &sOamData_BoxSelectionText,
-    .anims = gDummySpriteAnimTable,
-    .images = NULL,
-    .affineAnims = gDummySpriteAffineAnimTable,
-    .callback = SpriteCallbackDummy,
 };
 
 static const struct SpriteTemplate sSpriteTemplate_BoxSelectionText2 =
@@ -597,10 +591,6 @@ static const struct SpriteTemplate sSpriteTemplate_BoxSelectionText2 =
     .tileTag = GFXTAG_BOX_SELECTION_PER_30,
     .paletteTag = PALTAG_MISC_3,
     .oam = &sOamData_BoxSelectionText,
-    .anims = gDummySpriteAnimTable,
-    .images = NULL,
-    .affineAnims = gDummySpriteAffineAnimTable,
-    .callback = SpriteCallbackDummy,
 };
 
 // ============================================================================
@@ -658,9 +648,6 @@ static const struct SpriteTemplate sSpriteTemplate_BoxTitleFrame =
     .paletteTag = PALTAG_MISC_1,
     .oam = &sOamData_BoxTitleFrame,
     .anims = sSpriteAnimTable_BoxTitleFrame,
-    .images = NULL,
-    .affineAnims = gDummySpriteAffineAnimTable,
-    .callback = SpriteCallbackDummy,
 };
 
 // ============================================================================
@@ -712,8 +699,6 @@ static const struct SpriteTemplate sSpriteTemplate_BoxTitleArrow =
     .paletteTag = PALTAG_MISC_1,
     .oam = &sOamData_BoxTitleArrow,
     .anims = sSpriteAnimTable_BoxTitleArrow,
-    .images = NULL,
-    .affineAnims = gDummySpriteAffineAnimTable,
     .callback = SpriteCB_Arrow,
 };
 
@@ -761,9 +746,6 @@ static const struct SpriteTemplate sSpriteTemplate_BoxTitle =
     .paletteTag = PALTAG_MISC_1,
     .oam = &sOamData_BoxTitle,
     .anims = sAnims_BoxTitle,
-    .images = NULL,
-    .affineAnims = gDummySpriteAffineAnimTable,
-    .callback = SpriteCallbackDummy
 };
 
 // ============================================================================
@@ -831,9 +813,6 @@ static const struct SpriteTemplate sSpriteTemplate_Cursor =
     .paletteTag = PALTAG_MISC_1,
     .oam = &sOamData_Cursor,
     .anims = sAnims_Cursor,
-    .images = NULL,
-    .affineAnims = gDummySpriteAffineAnimTable,
-    .callback = SpriteCallbackDummy,
 };
 
 // ============================================================================
@@ -846,10 +825,6 @@ static const struct SpriteTemplate sSpriteTemplate_MonIcon =
     .tileTag = GFXTAG_MON_ICON,
     .paletteTag = PALTAG_MON_ICON_0,
     .oam = &sOamData_MonIcon,
-    .anims = gDummySpriteAnimTable,
-    .images = NULL,
-    .affineAnims = gDummySpriteAffineAnimTable,
-    .callback = SpriteCallbackDummy,
 };
 
 static const struct OamData sOamData_MonIcon =
@@ -938,8 +913,6 @@ static const struct SpriteTemplate sSpriteTemplate_GenderIcons =
     .oam = &sOamData_GenderIcons,
     .anims = sSpriteAnimTable_GenderIcons,
     .images = NULL,
-    .affineAnims = gDummySpriteAffineAnimTable,
-    .callback = SpriteCallbackDummy
 };
 
 // ============================================================================
@@ -975,10 +948,6 @@ static const struct SpriteTemplate sSpriteTemplate_ShinyIcon =
     .tileTag = GFXTAG_SHINY_ICON,
     .paletteTag = PALTAG_MISC_2,
     .oam = &sOamData_ShinyIcon,
-    .anims = gDummySpriteAnimTable,
-    .images = NULL,
-    .affineAnims = gDummySpriteAffineAnimTable,
-    .callback = SpriteCallbackDummy
 };
 
 // ============================================================================
@@ -1046,9 +1015,6 @@ static const struct SpriteTemplate sSpriteTemplate_StatLabels =
     .paletteTag = PALTAG_MISC_2,
     .oam = &sOamData_StatLabels,
     .anims = sSpriteAnimTable_StatLabels,
-    .images = NULL,
-    .affineAnims = gDummySpriteAffineAnimTable,
-    .callback = SpriteCallbackDummy
 };
 
 // ============================================================================
@@ -1086,10 +1052,6 @@ static const struct SpriteTemplate sSpriteTemplate_TypeIcons =
     .tileTag = GFXTAG_TYPE_ICON,
     .paletteTag = PALTAG_TYPE_ICON,
     .oam = &sOamData_TypeIcons,
-    .anims = gDummySpriteAnimTable,
-    .images = NULL,
-    .affineAnims = gDummySpriteAffineAnimTable,
-    .callback = SpriteCallbackDummy
 };
 
 // ============================================================================
@@ -1178,8 +1140,5 @@ static const struct SpriteTemplate sSpriteTemplate_ItemIcon =
     .tileTag = GFXTAG_ITEM_ICON_0,
     .paletteTag = PALTAG_ITEM_ICON_0,
     .oam = &sOamData_ItemIcon,
-    .anims = gDummySpriteAnimTable,
-    .images = NULL,
     .affineAnims = sAffineAnims_ItemIcon,
-    .callback = SpriteCallbackDummy,
 };
