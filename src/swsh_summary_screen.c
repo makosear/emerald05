@@ -544,14 +544,14 @@ static const u8 sButtons_Gfx[][4 * TILE_SIZE_4BPP] = {
 };
 
 #if SWSH_SUMMARY_SWSH_TYPE_ICONS == TRUE
-    static const u32 sMoveTypes_Gfx[] = INCBIN_U32("graphics/types_swsh_summary_screen/move_types.4bpp.smol");
+    static const u32 sMoveTypes_Gfx[] = INCBIN_U32("graphics/summary_screen/swsh/move_types.4bpp.smol");
     #if SWSH_SUMMARY_SWSH_TYPE_ICONS_SV_PAL == TRUE
-        static const u16 sMoveTypes_Pal[] = INCBIN_U16("graphics/types_swsh_summary_screen/move_types_sv.gbapal");
+        static const u16 sMoveTypes_Pal[] = INCBIN_U16("graphics/summary_screen/swsh/tera_types.gbapal");
     #else
-        static const u16 sMoveTypes_Pal[] = INCBIN_U16("graphics/types_swsh_summary_screen/move_types.gbapal");
+        static const u16 sMoveTypes_Pal[] = INCBIN_U16("graphics/summary_screen/swsh/move_types.gbapal");
     #endif
 #endif
-static const u32 sTeraTypes_Gfx[]                   = INCBIN_U32("graphics/types_swsh_summary_screen/tera/tera_types_swsh.4bpp.smol");
+static const u32 sTeraTypes_Gfx[]                   = INCBIN_U32("graphics/summary_screen/swsh/tera_types.4bpp.smol");
 static const u32 sHeldItemBox_Gfx[]                 = INCBIN_U32("graphics/summary_screen/swsh/held_item_box.4bpp.smol");
 static const u16 sHeldItemBox_Pal[]                 = INCBIN_U16("graphics/summary_screen/swsh/held_item_box.gbapal");
 static const u32 sAbilityBox_Gfx[]                  = INCBIN_U32("graphics/summary_screen/swsh/ability_box.4bpp.smol");
