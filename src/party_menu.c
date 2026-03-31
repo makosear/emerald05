@@ -4586,6 +4586,10 @@ static void UpdatePartyMonAilmentGfx(u8 status, struct PartyMenuBox *menuBox)
     }
 }
 
+void PartyMenu_SetShadowAnimDelayTaskId(u8 taskId)
+{
+}
+
 void LoadPartyMenuAilmentGfx(void)
 {
     LoadCompressedSpriteSheet(&sSpriteSheet_StatusIcons);
