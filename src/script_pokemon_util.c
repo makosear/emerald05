@@ -266,6 +266,10 @@ void LoadSelectMonsParty(void)
     u32 i;
     struct Pokemon battleAffectedMons[MAX_FRONTIER_PARTY_SIZE];
 
+    // Guard against double-restore (C-side restore + script-side restore on win path)
+    if (!sNeedRestorePartyAfterBattle)
+        return;
+
     // Save the complete battle-affected Pokemon (includes exp, level, evolution, HP, status, PP, etc.)
     // These are in the compacted battle party order (positions 0, 1, 2... up to selected count)
     for (i = 0; i < MAX_FRONTIER_PARTY_SIZE && i < gPlayerPartyCount; i++)

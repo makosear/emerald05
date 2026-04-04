@@ -1431,6 +1431,7 @@ static void HandleBattleVariantEndParty(void)
 static void CB2_EndTrainerBattle(void)
 {
     HandleBattleVariantEndParty();
+    RestoreSelectMonsPartyAfterBattle();
 
     gIsDebugBattle = FALSE;
     if (FollowerNPCIsBattlePartner())
