@@ -62,7 +62,7 @@
 enum SWSHPSSEffect
 {
     PSS_EFFECT_BATTLE,
-    PSS_EFFECT_COUNT 
+    PSS_EFFECT_COUNT
 };
 
 enum SWSHSkillsPageState
@@ -209,7 +209,7 @@ static EWRAM_DATA struct PokemonSummaryScreenData
         u8 ppBonuses; // 0x34
         u8 sanity; // 0x35
         u8 OTName[17]; // 0x36
-        u32 OTID; // 0x48  
+        u32 OTID; // 0x48
         u8 teraType;
         u8 mintNature;
         u8 ivHp;
@@ -329,11 +329,6 @@ static void PrintHeldItemInfo(void);
 static void PrintSkillsPageText(void);
 static void PrintRibbonCount(void);
 static void PrintStatLabels(void);
-static void PrintColoredStatLabel(u8, s8, const u8*, u8, u8, u8, u8, u8*);
-static void BufferHPStats(void);
-static void PrintHPStats(u8);
-static void BufferNonHPStats(void);
-static void PrintNonHPStats(void);
 static void PrintExpPointsNextLevel(void);
 static void PrintBattleMoves(void);
 static void Task_PrintBattleMoves(u8);
@@ -390,7 +385,7 @@ static void ShowCategoryIcon(enum Move);
 static void DestroyCategoryIcon(void);
 static void ChangeSummaryState(s16*, u8);
 static void DrawNextSkillsButtonPrompt(u8);
-static void BufferAndPrintStats_HandleState(u8);
+static void PrintStats(u8 mode);
 static void SetFriendshipSprite(void);
 static void TrySetInfoPageIcons(void);
 static void RunMonAnimTimer(void);
@@ -1090,7 +1085,7 @@ enum FriendshipLevels
 };
 
 // edit these to change what friendship value the heart icon changes at
-static const u8 sFriendshipLevelToThreshold[FRIENDSHIP_LEVEL_COUNT] = 
+static const u8 sFriendshipLevelToThreshold[FRIENDSHIP_LEVEL_COUNT] =
 {
     [FRIENDSHIP_LEVEL_0]    = 0,
     [FRIENDSHIP_LEVEL_1]    = 44,
@@ -1560,7 +1555,7 @@ static const struct OamData sOamData_HeldItemBox =
     .affineParam = 0,
 };
 
-static const union AnimCmd sSpriteAnim_HeldItemTile0[] = { 
+static const union AnimCmd sSpriteAnim_HeldItemTile0[] = {
     ANIMCMD_FRAME(0, 0, FALSE, FALSE),
     ANIMCMD_END
 };
@@ -1568,19 +1563,19 @@ static const union AnimCmd sSpriteAnim_HeldItemTile1[] = {
     ANIMCMD_FRAME(8, 0, FALSE, FALSE),
     ANIMCMD_END
 };
-static const union AnimCmd sSpriteAnim_HeldItemTile2[] = { 
+static const union AnimCmd sSpriteAnim_HeldItemTile2[] = {
     ANIMCMD_FRAME(16, 0, FALSE, FALSE),
     ANIMCMD_END
 };
-static const union AnimCmd sSpriteAnim_HeldItemTile3[] = { 
+static const union AnimCmd sSpriteAnim_HeldItemTile3[] = {
     ANIMCMD_FRAME(24, 0, FALSE, FALSE),
     ANIMCMD_END
 };
-static const union AnimCmd sSpriteAnim_HeldItemTile4[] = { 
+static const union AnimCmd sSpriteAnim_HeldItemTile4[] = {
     ANIMCMD_FRAME(32, 0, FALSE, FALSE),
     ANIMCMD_END
 };
-static const union AnimCmd sSpriteAnim_HeldItemTile5[] = { 
+static const union AnimCmd sSpriteAnim_HeldItemTile5[] = {
     ANIMCMD_FRAME(40, 0, FALSE, FALSE),
     ANIMCMD_END
 };
@@ -1729,7 +1724,7 @@ static const struct OamData sOamData_DynamaxBox =
 
 static const union AnimCmd sSpriteAnim_DynamaxBoxChunk0[] = {
     ANIMCMD_FRAME(0, 0, FALSE, FALSE),
-    ANIMCMD_END 
+    ANIMCMD_END
 };
 static const union AnimCmd sSpriteAnim_DynamaxBoxChunk1[] = {
     ANIMCMD_FRAME(8, 0, FALSE, FALSE),
@@ -2201,7 +2196,7 @@ static void RunMonAnimTimer(void)
         sMonSummaryScreen->monAnimTimer++;
     }
 
-    if (sMonSummaryScreen->monAnimTimer > SWSH_SUMMARY_MON_IDLE_ANIMS_FRAMES 
+    if (sMonSummaryScreen->monAnimTimer > SWSH_SUMMARY_MON_IDLE_ANIMS_FRAMES
         && sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MON] != SPRITE_NONE) // time to re-run the anim
     {
         for (i = 1; i < 8; i++)
@@ -2316,7 +2311,7 @@ static bool8 LoadGraphics(void)
         sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MON] = LoadMonGfxAndSprite(&sMonSummaryScreen->currentMon, &sMonSummaryScreen->switchCounter, FALSE);
         if (SWSH_SUMMARY_MON_SHADOWS)
             sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_SHADOW] = LoadMonGfxAndSprite(&sMonSummaryScreen->currentMon, &sMonSummaryScreen->switchCounter, TRUE);
-        
+
         if (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MON] != SPRITE_NONE)
         {
             sMonSummaryScreen->monAnimTimer = 0;
@@ -2653,7 +2648,7 @@ static bool8 ExtractMonDataToSummaryStruct(struct Pokemon *mon)
         sum->evSpeed = GetMonData(mon, MON_DATA_SPEED_EV);
         break;
     default:
-        sum->ribbonCount = GetMonData(mon, MON_DATA_RIBBON_COUNT);        
+        sum->ribbonCount = GetMonData(mon, MON_DATA_RIBBON_COUNT);
         sum->teraType = GetMonData(mon, MON_DATA_TERA_TYPE);
         sum->isShiny = GetMonData(mon, MON_DATA_IS_SHINY);
         return TRUE;
@@ -2766,7 +2761,7 @@ static void Task_HandleInput(u8 taskId)
 {
     s16 *data = gTasks[taskId].data;
     u8 defaultSkillsState = SKILL_STATE_STATS;
-    
+
     if (MenuHelpers_ShouldWaitForLinkRecv() != TRUE && !gPaletteFade.active)
     {
         if (JOY_NEW(DPAD_UP))
@@ -2804,7 +2799,7 @@ static void Task_HandleInput(u8 taskId)
                     ChangeSummaryState(data, taskId);
                     DrawNextSkillsButtonPrompt(tSkillsState);
                     PlaySE(SE_SELECT);
-                    BufferAndPrintStats_HandleState(tSkillsState);
+                    PrintStats(tSkillsState);
                 }
             }
         }
@@ -2813,7 +2808,7 @@ static void Task_HandleInput(u8 taskId)
             StopPokemonAnimations();
             PlaySE(SE_SELECT);
             BeginCloseSummaryScreen(taskId);
-        }  
+        }
         else if (JOY_NEW(START_BUTTON))
         {
             if (sMonSummaryScreen->currPageIndex == PSS_PAGE_INFO && ShouldShowRename())
@@ -2850,8 +2845,8 @@ static void Task_HandleInput(u8 taskId)
                 StopPokemonAnimations();
                 PlaySE(SE_SELECT);
                 BeginCloseSummaryScreen(taskId);
-            }  
-        }        
+            }
+        }
         else if (DEBUG_POKEMON_SPRITE_VISUALIZER && JOY_NEW(SELECT_BUTTON) && !gMain.inBattle)
         {
             sMonSummaryScreen->callback = CB2_Pokemon_Sprite_Visualizer;
@@ -2944,7 +2939,7 @@ static void TryUpdateRelearnType(enum IncrDecrUpdateValues delta)
             return;
         }
         zeroCounter++;
-        
+
     } while (zeroCounter <= MOVE_RELEARNER_COUNT && hasRelearnableMoves == 0);
 }
 
@@ -3087,18 +3082,18 @@ static void Task_ChangeSummaryMon(u8 taskId)
     case 12:
         PrintPageSpecificText(sMonSummaryScreen->currPageIndex);
         if (sMonSummaryScreen->currPageIndex == PSS_PAGE_INFO)
-        { 
+        {
             ScheduleBgCopyTilemapToVram(2);
 
             if (P_SUMMARY_SCREEN_RENAME)
             {
                 FillWindowPixelBuffer(PSS_LABEL_WINDOW_PROMPT_CANCEL, PIXEL_FILL(0));
                 ShowCancelOrRenamePrompt();
-                PutWindowTilemap(PSS_LABEL_WINDOW_PROMPT_CANCEL);  
+                PutWindowTilemap(PSS_LABEL_WINDOW_PROMPT_CANCEL);
             }
             CreateHeldItemBoxSprites();
             CreateHeldItemSprite();
-        } 
+        }
         else if (sMonSummaryScreen->currPageIndex == PSS_PAGE_SKILLS)
         {
             DrawNextSkillsButtonPrompt(SKILL_STATE_STATS);
@@ -3226,7 +3221,7 @@ static void ChangePage(u8 taskId, s8 delta)
         TryUpdateRelearnType(TRY_SET_UPDATE);
     }
 
-    // to prevent nothing showing 
+    // to prevent nothing showing
     if (currPageIndex == PSS_PAGE_BATTLE_MOVES && sMonSummaryScreen->hasRelearnableMoves == 0)
     {
         TryUpdateRelearnType(TRY_SET_UPDATE);
@@ -3235,7 +3230,7 @@ static void ChangePage(u8 taskId, s8 delta)
     }
     else
     {
-        HideMoveRelearner();  
+        HideMoveRelearner();
     }
 }
 
@@ -3253,7 +3248,7 @@ static void PssScroll(u8 taskId)
         if (sMonSummaryScreen->mode == SUMMARY_MODE_SELECT_MOVE)
             SetGpuRegBits(REG_OFFSET_BG1CNT, BGCNT_MOSAIC);
     }
-    
+
     // build up mosaic effect
     if (tScrollState <= 3)
     {
@@ -3301,8 +3296,8 @@ static void PssScrollEnd(u8 taskId)
     if (sMonSummaryScreen->currPageIndex == PSS_PAGE_INFO)
     {
         if (sMonSummaryScreen->markingsSprite != NULL)
-           sMonSummaryScreen->markingsSprite->invisible = FALSE; 
-    } 
+           sMonSummaryScreen->markingsSprite->invisible = FALSE;
+    }
 
     SwitchTaskToFollowupFunc(taskId);
 }
@@ -3433,7 +3428,7 @@ static void CloseMoveSelectMode(u8 taskId)
         ShowMoveRelearner();
     ShowInfoPrompt();
     sMonSummaryScreen->mode = SUMMARY_MODE_NORMAL;
-    
+
     CreateTask(Task_HideEffectTilemap, 1);
     gTasks[taskId].func = Task_HandleInput;
 }
@@ -3871,7 +3866,7 @@ static void UNUSED PrintTextOnWindowToFitPx(u8 windowId, const u8 *string, u8 x,
 {
     // Changed from FONT_SHORT TO FONT_NORMAL for lowercase L-letter spacing
     // Worked exclusively when FONT_NORMAL points to latin_frlg or latin_frlg_nums
-    u32 fontId = GetFontIdToFit(string, FONT_NORMAL, 0, width); 
+    u32 fontId = GetFontIdToFit(string, FONT_NORMAL, 0, width);
     PrintTextOnWindowWithFont(windowId, string, x, y, lineSpacing, colorId, fontId);
 }
 
@@ -3915,7 +3910,7 @@ static void PrintNotEggInfo(void)
         // Print the level number with FONT_SHORT_NARROW, positioned after "Lv." (10) + space (1)
         PrintTextOnWindow(PSS_LABEL_WINDOW_PORTRAIT_INFO, gStringVar2, 74 + 10 + 1, 1, 0, 1);
     }
-    
+
     PutWindowTilemap(PSS_LABEL_WINDOW_PORTRAIT_INFO);
 }
 
@@ -3923,7 +3918,7 @@ static void PrintEggStepsRemaining(void)
 {
     u32 eggCycles = GetMonData(&sMonSummaryScreen->currentMon, MON_DATA_FRIENDSHIP);
     u32 stepsInCurrentCycle = gSaveBlock1Ptr->daycare.stepCounter;
-    
+
     #if P_EGG_CYCLE_LENGTH >= GEN_8
         u32 stepsPerCycle = 128;
     #elif P_EGG_CYCLE_LENGTH == GEN_5 || P_EGG_CYCLE_LENGTH == GEN_6
@@ -3937,13 +3932,13 @@ static void PrintEggStepsRemaining(void)
     // Handle fast-hatching abilities like Flame Body, etc.
     u8 cyclesToSubtract = GetEggCyclesToSubtract();
     u32 stepsRemaining;
-    
+
     // Calculate how many actual step cycles are needed
     // 1. Round up division
     // 2. Add 1 for the last cycle (GF Jank?)
     u32 cyclesNeeded = ((eggCycles + cyclesToSubtract - 1) / cyclesToSubtract) + 1;
     stepsRemaining = ((cyclesNeeded) * stepsPerCycle) - stepsInCurrentCycle;
-    
+
     ConvertIntToDecimalStringN(gStringVar1, stepsRemaining, STR_CONV_MODE_LEFT_ALIGN, 5);
     DynamicPlaceholderTextUtil_SetPlaceholderPtr(0, gStringVar1);
     DynamicPlaceholderTextUtil_ExpandPlaceholders(gStringVar1, sEggStepsLayout);
@@ -3981,7 +3976,7 @@ static void CreateGenderSprite(struct Pokemon *mon, u16 species)
         LoadGenderGfx();
         *spriteId = CreateSprite(&sSpriteTemplate_Gender, 231, 17, 6);
     }
-    
+
     if (species != SPECIES_NIDORAN_M && species != SPECIES_NIDORAN_F && !sMonSummaryScreen->summary.isEgg)
     {
         gender = GetMonGender(mon);
@@ -4036,7 +4031,7 @@ static void PrintButtonIcon(u8 windowId, u8 buttonType, u32 x, u32 y)
         [BUTTON_B]      = {8, 8},
         [BUTTON_START]  = {32, 8},
     };
-    
+
     const u8 *button = sButtons_Gfx[buttonType];
     u8 width = sButtonDimensions[buttonType].width;
     u8 height = sButtonDimensions[buttonType].height;
@@ -4258,7 +4253,7 @@ static void PrintMonDexNumberSpecies(void)
     u16 dexNum = SpeciesToPokedexNum(summary->species); // not printing pokedex number
 
     windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_SPECIES);
-    
+
 
     if (sMonSummaryScreen->summary.isEgg)
     {
@@ -4267,7 +4262,7 @@ static void PrintMonDexNumberSpecies(void)
     else
     {
         PrintTextOnWindow(windowId, GetSpeciesName(summary->species2), 0, 3, 0, 0);
-        
+
         if (dexNum != 0xFFFF)
         {
             u8 digitCount = (NATIONAL_DEX_COUNT > 999 && IsNationalPokedexEnabled()) ? 4 : 3;
@@ -4452,7 +4447,7 @@ static void BufferMonEncounter(void)
 
     text = sText_MemoNature;
 
-    if (DoesMonOTMatchOwner() == TRUE) 
+    if (DoesMonOTMatchOwner() == TRUE)
     {
         if (sum->metLevel == 0)
             text = (!locationFound) ? sText_MemoHatchedSomewhere : sText_MemoHatched;
@@ -4649,11 +4644,7 @@ static void PrintSkillsPageText(void)
     //PrintRibbonCount();
     PrintMonAbilityName();
     PrintMonAbilityDescription();
-    PrintStatLabels();
-    BufferHPStats();
-    PrintHPStats(SKILL_STATE_STATS);
-    BufferNonHPStats();
-    PrintNonHPStats();
+    PrintStats(SKILL_STATE_STATS);
 }
 
 // Update the task function to include stat label printing as a separate step
@@ -4670,24 +4661,9 @@ static void Task_PrintSkillsPage(u8 taskId)
         PrintMonAbilityDescription();
         break;
     case 3:
-        PrintStatLabels();
+        PrintStats(SKILL_STATE_STATS);
         break;
     case 4:
-        BufferHPStats();
-        break;
-    case 5:
-        PrintHPStats(SKILL_STATE_STATS);
-        break;
-    case 6:
-        BufferNonHPStats();
-        break;
-    case 7:
-        PrintNonHPStats();
-        break;
-    case 8:
-        // PrintExpPointsNextLevel();
-        break;
-    case 9:
         DestroyTask(taskId);
         return;
     }
@@ -4723,7 +4699,7 @@ static void PrintHeldItemInfo(void)
 
     fontId = GetFontIdToFit(text, FONT_SHORT_NARROW, 0, 72);
     PrintTextOnWindowWithFont(windowId, text, 74, 5, 0, 0, fontId);
-    
+
     fontId = FormatTextByWidth(desc, 144, FONT_SHORT_NARROW, description, GetFontAttribute(FONT_SHORT_NARROW, FONTATTR_LETTER_SPACING));
     PrintTextOnWindowWithFont(windowId, desc, 0, 23, 1, 0, fontId);
 }
@@ -4757,11 +4733,12 @@ static void BufferStat(u8 *dst, u32 stat, u32 strId, u32 align)
 }
 
 
-static void BufferAndPrintStats_HandleState(u8 mode)
+static void PrintStats(u8 mode)
 {
     u16 hp, hp2, atk, def, spA, spD, spe;
-    u8 *currentHPString = Alloc(20);
-    u8 *maxHPString = Alloc(20);
+    u8 windowId;
+
+    FillWindowPixelBuffer(sMonSummaryScreen->windowIds[PSS_DATA_WINDOW_SKILLS_STATS], 0);
 
     switch (mode)
     {
@@ -4793,140 +4770,95 @@ static void BufferAndPrintStats_HandleState(u8 mode)
         break;
     }
 
-    FillWindowPixelBuffer(sMonSummaryScreen->windowIds[PSS_DATA_WINDOW_SKILLS_STATS], 0);
-
-    // Add the stat labels printing here for mode switching
     PrintStatLabels();
+    windowId = AddWindowFromTemplateList(sPageSkillsTemplate, PSS_DATA_WINDOW_SKILLS_STATS);
 
     if (mode == SKILL_STATE_STATS)
     {
+        u8 currentHPString[8];
+        u8 maxHPString[8];
         ConvertIntToDecimalStringN(currentHPString, hp, STR_CONV_MODE_RIGHT_ALIGN, 3);
         ConvertIntToDecimalStringN(maxHPString, hp2, STR_CONV_MODE_RIGHT_ALIGN, 3);
         DynamicPlaceholderTextUtil_Reset();
         DynamicPlaceholderTextUtil_SetPlaceholderPtr(0, currentHPString);
         DynamicPlaceholderTextUtil_SetPlaceholderPtr(1, maxHPString);
         DynamicPlaceholderTextUtil_ExpandPlaceholders(gStringVar4, sStatsHPLayout);
-        PrintHPStats(mode);
-
-        DynamicPlaceholderTextUtil_Reset();
-        BufferStat(gStringVar1, atk, 0, 3);
-        BufferStat(gStringVar2, def, 1, 3);
-        BufferStat(gStringVar3, spA, 2, 3);
-        BufferStat(gStringVar4, spD, 3, 3);
-        BufferStat(sStringVar5, spe, 4, 3);
-        PrintNonHPStats();
+        AddTextPrinterParameterized4(windowId, PSS_DEFAULT_FONT, 72 - GetStringWidth(FONT_SHORT_NARROW, gStringVar4, 0), 2, 0, 0, sTextColors[0], TEXT_SKIP_DRAW, gStringVar4);
     }
     else
     {
-        BufferStat(maxHPString, hp, 0, 7);
+        u8 hpString[8];
+        BufferStat(hpString, hp, 0, 7);
         DynamicPlaceholderTextUtil_Reset();
-        DynamicPlaceholderTextUtil_SetPlaceholderPtr(0, maxHPString);
+        DynamicPlaceholderTextUtil_SetPlaceholderPtr(0, hpString);
         DynamicPlaceholderTextUtil_ExpandPlaceholders(gStringVar4, sStatsHPIVEVLayout);
-        PrintHPStats(mode);
-
-        BufferStat(gStringVar1, atk, 0, 3);
-        BufferStat(gStringVar2, def, 1, 3);
-        BufferStat(gStringVar3, spA, 2, 3);
-        BufferStat(gStringVar4, spD, 3, 3);
-        BufferStat(sStringVar5, spe, 4, 3);
-        PrintNonHPStats();
+        AddTextPrinterParameterized4(windowId, PSS_DEFAULT_FONT, 72 - GetStringWidth(FONT_SHORT_NARROW, gStringVar4, 0), 2, 0, 0, sTextColors[0], TEXT_SKIP_DRAW, gStringVar4);
     }
 
-    Free(currentHPString); 
-    Free(maxHPString); 
-}
+    // print other stats
+    BufferStat(gStringVar1, atk, 0, 3);
+    AddTextPrinterParameterized4(windowId, PSS_DEFAULT_FONT, 144 - GetStringWidth(FONT_SHORT_NARROW, gStringVar1, 0), 2, 0, 0, sTextColors[0], TEXT_SKIP_DRAW, gStringVar1);
 
-static void BufferHPStats(void)
-{
-    u8 *currentHPString = Alloc(8);
-    u8 *maxHPString = Alloc(8);
+    BufferStat(gStringVar2, def, 1, 3);
+    AddTextPrinterParameterized4(windowId, PSS_DEFAULT_FONT, 72 - GetStringWidth(FONT_SHORT_NARROW, gStringVar2, 0), 19, 0, 0, sTextColors[0], TEXT_SKIP_DRAW, gStringVar2);
 
-    ConvertIntToDecimalStringN(currentHPString, sMonSummaryScreen->summary.currentHP, STR_CONV_MODE_RIGHT_ALIGN, 3);
-    ConvertIntToDecimalStringN(maxHPString, sMonSummaryScreen->summary.maxHP, STR_CONV_MODE_RIGHT_ALIGN, 3);
+    BufferStat(gStringVar3, spA, 2, 3);
+    AddTextPrinterParameterized4(windowId, PSS_DEFAULT_FONT, 144 - GetStringWidth(FONT_SHORT_NARROW, gStringVar3, 0), 19, 0, 0, sTextColors[0], TEXT_SKIP_DRAW, gStringVar3);
 
-    DynamicPlaceholderTextUtil_Reset();
-    DynamicPlaceholderTextUtil_SetPlaceholderPtr(0, currentHPString);
-    DynamicPlaceholderTextUtil_SetPlaceholderPtr(1, maxHPString);
-    DynamicPlaceholderTextUtil_ExpandPlaceholders(gStringVar4, sStatsHPLayout);
+    BufferStat(gStringVar4, spD, 3, 3);
+    AddTextPrinterParameterized4(windowId, PSS_DEFAULT_FONT, 72 - GetStringWidth(FONT_SHORT_NARROW, gStringVar4, 0), 36, 0, 0, sTextColors[0], TEXT_SKIP_DRAW, gStringVar4);
 
-    Free(currentHPString);
-    Free(maxHPString);
-}
+    BufferStat(sStringVar5, spe, 4, 3);
+    AddTextPrinterParameterized4(windowId, PSS_DEFAULT_FONT, 144 - GetStringWidth(FONT_SHORT_NARROW, sStringVar5, 0), 36, 0, 0, sTextColors[0], TEXT_SKIP_DRAW, sStringVar5);
 
-static void PrintHPStats(u8 mode)
-{
-    u8 windowId = AddWindowFromTemplateList(sPageSkillsTemplate, PSS_DATA_WINDOW_SKILLS_STATS);
-    PrintTextOnWindow(windowId, gStringVar4, 72 - GetStringWidth(FONT_SHORT_NARROW, gStringVar4, 0), 2, 0, 0);
-}
-
-
-static void BufferNonHPStats(void)
-{
-    DynamicPlaceholderTextUtil_Reset();
-    BufferStat(gStringVar1, sMonSummaryScreen->summary.atk, 0, 3);
-    BufferStat(gStringVar2, sMonSummaryScreen->summary.def, 1, 3);
-    BufferStat(gStringVar3, sMonSummaryScreen->summary.spatk, 2, 3);
-    BufferStat(gStringVar4, sMonSummaryScreen->summary.spdef, 3, 3);
-    BufferStat(sStringVar5, sMonSummaryScreen->summary.speed, 4, 3);
-}
-
-
-static void PrintNonHPStats(void)
-{
-    u8 windowId = AddWindowFromTemplateList(sPageSkillsTemplate, PSS_DATA_WINDOW_SKILLS_STATS);
-    
-    PrintTextOnWindow(windowId, gStringVar1, 144 - GetStringWidth(FONT_SHORT_NARROW, gStringVar1, 0), 2, 0, 0);
-    PrintTextOnWindow(windowId, gStringVar2, 72 - GetStringWidth(FONT_SHORT_NARROW, gStringVar2, 0), 19, 0, 0);
-    PrintTextOnWindow(windowId, gStringVar3, 144 - GetStringWidth(FONT_SHORT_NARROW, gStringVar3, 0), 19, 0, 0);
-    PrintTextOnWindow(windowId, gStringVar4, 72 - GetStringWidth(FONT_SHORT_NARROW, gStringVar4, 0), 36, 0, 0);
-    PrintTextOnWindow(windowId, sStringVar5, 144 - GetStringWidth(FONT_SHORT_NARROW, sStringVar5, 0), 36, 0, 0);
-}
-
-static void PrintColoredStatLabel(u8 windowId, s8 statIndex, const u8 *text, u8 x, u8 y, 
-                                  u8 natureUpStat, u8 natureDownStat, u8 *coloredLabel)
-{
-    static const u8 sTextNatureDown[] = _("{COLOR}{07}{SHADOW}{08}");
-    static const u8 sTextNatureUp[] = _("{COLOR}{05}{SHADOW}{06}");
-    static const u8 sTextNatureNeutral[] = _("{COLOR}{01}");
-    
-    const u8 *color;
-    
-    // Check for neutral nature first
-    if (natureUpStat == natureDownStat)
-    {
-        color = sTextNatureNeutral;
-    }
-    else
-    {
-        color = (statIndex == natureUpStat) ? sTextNatureUp : 
-                (statIndex == natureDownStat) ? sTextNatureDown : 
-                sTextNatureNeutral;
-    }
-    
-    StringCopy(coloredLabel, color);
-    StringAppend(coloredLabel, text); 
-    PrintTextOnWindow(windowId, coloredLabel, x, y, 0, 0);
+    // Now copy everything to VRAM in one operation
+    CopyWindowToVram(windowId, COPYWIN_FULL);
 }
 
 // Add a function to just print the stat labels
 static void PrintStatLabels(void)
 {
+    static const u8 sTextNatureDown[] = _("{COLOR}{07}{SHADOW}{08}");
+    static const u8 sTextNatureUp[] = _("{COLOR}{05}{SHADOW}{06}");
+    static const u8 sTextNatureNeutral[] = _("{COLOR}{01}");
+
+    struct StatLabelInfo {
+        u8 statIndex;
+        const u8 *text;
+        u8 x;
+        u8 y;
+    };
+
+    static const struct StatLabelInfo sStatLabels[] = {
+        {STAT_HP,     sText_HP_Title,      8,  2},
+        {STAT_ATK,    sText_Attack_Title,  80, 2},
+        {STAT_DEF,    sText_Defense_Title, 8,  19},
+        {STAT_SPATK,  sText_SpAtk_Title,   80, 19},
+        {STAT_SPDEF,  sText_SpDef_Title,   8,  36},
+        {STAT_SPEED,  sText_Speed_Title,   80, 36},
+    };
+
     u8 windowId = AddWindowFromTemplateList(sPageSkillsTemplate, PSS_DATA_WINDOW_SKILLS_STATS);
     u8 coloredLabel[64];
-    
-    // Pre-calculate nature info once
     u8 natureUpStat = gNaturesInfo[sMonSummaryScreen->summary.mintNature].statUp;
     u8 natureDownStat = gNaturesInfo[sMonSummaryScreen->summary.mintNature].statDown;
+    u8 i;
 
-    // Print HP label
-    PrintTextOnWindow(windowId, sText_HP_Title, 8, 2, 0, 0);
-    
-    // Print non-HP stat labels (colored)
-    PrintColoredStatLabel(windowId, STAT_ATK, sText_Attack_Title, 80, 2, natureUpStat, natureDownStat, coloredLabel);
-    PrintColoredStatLabel(windowId, STAT_DEF, sText_Defense_Title, 8, 19, natureUpStat, natureDownStat, coloredLabel);
-    PrintColoredStatLabel(windowId, STAT_SPATK, sText_SpAtk_Title, 80, 19, natureUpStat, natureDownStat, coloredLabel);
-    PrintColoredStatLabel(windowId, STAT_SPDEF, sText_SpDef_Title, 8, 36, natureUpStat, natureDownStat, coloredLabel);
-    PrintColoredStatLabel(windowId, STAT_SPEED, sText_Speed_Title, 80, 36, natureUpStat, natureDownStat, coloredLabel);
+    for (i = 0; i < ARRAY_COUNT(sStatLabels); i++)
+    {
+        const u8 *color;
+
+        if (sStatLabels[i].statIndex == natureUpStat)
+            color = sTextNatureUp;
+        else if (sStatLabels[i].statIndex == natureDownStat)
+            color = sTextNatureDown;
+        else
+            color = sTextNatureNeutral;
+
+        StringCopy(coloredLabel, color);
+        StringAppend(coloredLabel, sStatLabels[i].text);
+        AddTextPrinterParameterized4(windowId, PSS_DEFAULT_FONT, sStatLabels[i].x, sStatLabels[i].y, 0, 0, sTextColors[0], TEXT_SKIP_DRAW, coloredLabel);
+    }
 }
 
 static void PrintExpPointsNextLevel(void)
@@ -5237,7 +5169,7 @@ static void ShowCategoryIcon(enum Move move)
 {
     if (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_CATEGORY] == SPRITE_NONE)
         sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_CATEGORY] = CreateSprite(&sSpriteTemplate_CategoryIcons, 68, 129, 0);
-    
+
     gSprites[sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_CATEGORY]].invisible = FALSE;
 
     StartSpriteAnim(&gSprites[sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_CATEGORY]], GetBattleMoveCategory(move));
@@ -5302,7 +5234,7 @@ static void SetTypeIcons(void)
 static void TrySetInfoPageIcons(void)
 {
     if (sMonSummaryScreen->currPageIndex == PSS_PAGE_INFO)
-    { 
+    {
         SetPokerusCuredSprite();
         SetShinySprite();
         CreateHeldItemBoxSprites();
@@ -5396,7 +5328,7 @@ static void SetMoveTypeIcons(void)
         {
             SetSpriteInvisibility(i + SPRITE_ARR_ID_TYPE, TRUE);
         }
-            
+
     }
 }
 
@@ -5405,7 +5337,7 @@ static void SetNewMoveTypeIcon(void)
 {
     u32 move = sMonSummaryScreen->newMove;
     u8 i = 4;
-    
+
     if (move == MOVE_NONE)
     {
         SetSpriteInvisibility(SPRITE_ARR_ID_TYPE + 4, TRUE);
@@ -5641,7 +5573,7 @@ bool8 MonHasGigantamaxFactor(struct Pokemon *mon)
 }
 
 static void CreateGigantamaxSprite(void)
-{   
+{
     struct Pokemon *mon = &sMonSummaryScreen->currentMon;
     u8 *spriteId = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_GIGANTAMAX];
 
@@ -5654,12 +5586,12 @@ static void CreateGigantamaxSprite(void)
 static void SetFriendshipSprite(void)
 {
     u8 level = FRIENDSHIP_LEVEL_0;
-    
+
     if (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_FRIENDSHIP] == SPRITE_NONE)
         sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_FRIENDSHIP] = CreateSprite(&sSpriteTemplate_FriendshipIcon, 233, 32, 0);
 
     gSprites[sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_FRIENDSHIP]].invisible = FALSE;
-    
+
     // don't even think about swapping the order of the conditions here or the compiler will smite you for your arrogance
     // I have no idea why it works that way
     while (level < FRIENDSHIP_LEVEL_MAX && sMonSummaryScreen->summary.friendship >= sFriendshipLevelToThreshold[level + 1])
@@ -5745,7 +5677,7 @@ static void CreateHeldItemBoxSprites(void)
 
 static void DestroyHeldItemBoxSprites(void)
 {
-    u8 i;    
+    u8 i;
     for (i = 0; i < HELD_ITEM_BOX_SPRITES_COUNT; i++)
         DestroySpriteInArray(SPRITE_ARR_ID_HELD_ITEM_BOX + i);
 }
@@ -5796,7 +5728,7 @@ static void CreateAbilityBoxSprites(void)
 
 static void DestroyAbilityBoxSprites(void)
 {
-    u8 i;    
+    u8 i;
     for (i = 0; i < ABILITY_BOX_SPRITES_COUNT; i++)
         DestroySpriteInArray(SPRITE_ARR_ID_ABILITY_BOX + i);
 }
@@ -5815,7 +5747,7 @@ static void CreateDynamaxLevelSprites(void)
         return;
 
     CreateDynamaxBoxSprites();
-    
+
     if (level >= DYNAMAX_LEVEL_COUNT)
         level = DYNAMAX_LEVEL_COUNT - 1;
 
@@ -5828,9 +5760,9 @@ static void CreateDynamaxLevelSprites(void)
             animFrame = i + 1;
         else
             animFrame = 0;
-        
+
         xPos = 64 + (i * 8) + 8;
-        
+
         spriteIds[i] = CreateSprite(&sSpriteTemplate_DynamaxLevel, xPos, 98, 1);
 
         if (spriteIds[i] != MAX_SPRITES)
@@ -5853,14 +5785,14 @@ static void CreateDynamaxBoxSprites(void)
 {
     u8 i;
     u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_DYNAMAX_BOX];
-    
+
     DestroyDynamaxBoxSprites();
-    
+
     for (i = 0; i < DYNAMAX_BOX_SPRITES_COUNT; i++)
     {
         // 32x16 contiguous chunks starting at x=0
         spriteIds[i] = CreateSprite(&sSpriteTemplate_DynamaxBox, (i * 32) + 16, 98, 2);
-        
+
         if (spriteIds[i] != MAX_SPRITES)
         {
             StartSpriteAnim(&gSprites[spriteIds[i]], i);
@@ -5870,7 +5802,7 @@ static void CreateDynamaxBoxSprites(void)
 
 static void DestroyDynamaxBoxSprites(void)
 {
-    u8 i;    
+    u8 i;
     for (i = 0; i < DYNAMAX_BOX_SPRITES_COUNT; i++)
         DestroySpriteInArray(SPRITE_ARR_ID_DYNAMAX_BOX + i);
 }
@@ -5879,16 +5811,16 @@ static void CreateHeldItemSprite(void)
 {
     enum Item itemId = sMonSummaryScreen->summary.item;
     u8 spriteId;
-    
+
     // Always destroy old sprite first
     DestroyHeldItemIconSprite();
-    
+
     // Only create new sprite if mon has an item
     if (itemId == ITEM_NONE)
         return;
-    
+
     spriteId = AddItemIconSprite(TAG_HELD_ITEM_ICON, TAG_HELD_ITEM_ICON, itemId);
-    
+
     if (spriteId != MAX_SPRITES)
     {
         sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_ITEM] = spriteId;
@@ -5900,7 +5832,7 @@ static void CreateHeldItemSprite(void)
 static void DestroyHeldItemIconSprite(void)
 {
     u8 spriteId = sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_ITEM];
-    
+
     if (spriteId != SPRITE_NONE)
     {
         FreeSpriteTilesByTag(TAG_HELD_ITEM_ICON);
@@ -6034,7 +5966,7 @@ static void KeepMoveSelectorVisible(u8 firstSpriteId)
 static u8 PerformTextFormatting(u8 *result, s32 maxWidth, u8 fontId, const u8 *str, s16 letterSpacing, u32 *outLineCount)
 {
     u8 *end, *ptr, *curLine, *lastSpace;
-    
+
     end = result;
     // copy string, replacing spaces and line breaks with EOS
     // EXCEPT: if newline follows a hyphen, skip the newline without adding EOS
@@ -6055,7 +5987,7 @@ static u8 PerformTextFormatting(u8 *result, s32 maxWidth, u8 fontId, const u8 *s
             *end = *str;
             end++;
         }
-        
+
         str++;
     }
     *end = EOS; // now end points to the true end of the string
@@ -6104,7 +6036,7 @@ static u8 PerformTextFormatting(u8 *result, s32 maxWidth, u8 fontId, const u8 *s
             ptr++;
         // now ptr is the next EOS char
     }
-    
+
     // Check if the last line also fits within maxWidth
     return (GetStringWidth(fontId, curLine, letterSpacing) <= maxWidth);
 }
@@ -6115,29 +6047,29 @@ static u8 FormatTextByWidth(u8 *result, s32 maxWidth, u8 fontId, const u8 *str, 
 {
     u32 lineCount;
     bool32 lastLineFits;
-    
+
     // Try formatting with progressively narrower fonts until it fits in 2 lines or fewer
     while (TRUE)
     {
         lastLineFits = PerformTextFormatting(result, maxWidth, fontId, str, letterSpacing, &lineCount);
-        
+
         // If we have 2 or fewer lines AND the last line fits, we're done
         if (lineCount < 3 && lastLineFits)
             break;
-        
+
         // Try to get a narrower font
         u8 narrowerFontId = fontId;
         if (fontId == FONT_SHORT_NARROW)
             narrowerFontId = FONT_SHORT_NARROWER;
-        
+
         // If no narrower font available, use what we have
         if (narrowerFontId == fontId)
             break;
-        
+
         fontId = narrowerFontId;
         letterSpacing = GetFontAttribute(fontId, FONTATTR_LETTER_SPACING);
     }
-    
+
     return fontId;
 }
 
@@ -6147,7 +6079,7 @@ static inline bool32 ShouldShowMoveRelearner(void)
          && !sMonSummaryScreen->lockMovesFlag
          && sMonSummaryScreen->mode != SUMMARY_MODE_BOX_CURSOR
          && sMonSummaryScreen->hasRelearnableMoves > 0
-         && !InBattleFactory() 
+         && !InBattleFactory()
          && !InSlateportBattleTent()
          && !NoMovesAvailableToRelearn());
 }
@@ -6160,7 +6092,7 @@ static void ShowMoveRelearner(void)
         sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_RELEARN_PROMPT_SWITCH] = CreateSprite(&sSpriteTemplate_RelearnPromptSwitch, 192, 156, 0);
         sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_LR_BUTTON] = CreateSprite(&sSpriteTemplate_LRButton, 102, 152, 0);
     }
-    
+
     gSprites[sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_RELEARN_PROMPT]].invisible = FALSE;
     gSprites[sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_RELEARN_PROMPT_SWITCH]].invisible = FALSE;
     gSprites[sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_LR_BUTTON]].invisible = FALSE;
@@ -6181,7 +6113,7 @@ static void ShowInfoPrompt(void)
 {
     if (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_INFO_PROMPT] == SPRITE_NONE)
         sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_INFO_PROMPT] = CreateSprite(&sSpriteTemplate_InfoPrompt, 221, 152, 0);
-    
+
     gSprites[sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_INFO_PROMPT]].invisible = FALSE;
 }
 
@@ -6197,7 +6129,7 @@ static inline bool32 ShouldShowRename(void)
          && !sMonSummaryScreen->lockMovesFlag
          && !sMonSummaryScreen->summary.isEgg
          && sMonSummaryScreen->mode != SUMMARY_MODE_BOX_CURSOR
-         && !InBattleFactory() 
+         && !InBattleFactory()
          && !InSlateportBattleTent()
          && GetPlayerIDAsU32() == sMonSummaryScreen->summary.OTID);
 }
@@ -6208,7 +6140,7 @@ static void ShowCancelOrRenamePrompt(void)
 
     int stringXPos = GetStringRightAlignXOffset(FONT_SHORT_NARROW, promptText, 70) - 2;
     int iconXPos;
-    
+
     if (ShouldShowRename())
     {
         iconXPos = stringXPos - 31;
@@ -6217,7 +6149,7 @@ static void ShowCancelOrRenamePrompt(void)
         PrintButtonIcon(PSS_LABEL_WINDOW_PROMPT_CANCEL, BUTTON_START, iconXPos, 4);
         PrintTextOnWindowWithFont(PSS_LABEL_WINDOW_PROMPT_CANCEL, promptText, stringXPos, 0, 0, 1, FONT_SMALL);
     }
-    else 
+    else
     {
         iconXPos = stringXPos - 11;
         if (iconXPos < 0)
@@ -6239,7 +6171,7 @@ static void CB2_PssChangePokemonNickname(void)
 }
 
 /*
-Montblanc note: 
+Montblanc note:
 - The functions below are used to remove hyphens from specific words when they are split across lines.
 - For example, Incineum Z has "Incine-\n" and "roar", which the previous formatter would have rendered: "Incine-roar"
 - Is this 100% overkill for just a few words? Yes.
@@ -6284,16 +6216,16 @@ static bool32 ShouldRemoveHyphen(const u8 *p, const u8 *start, const u8 *end)
     {
         const char *before = sHyphenRemovalPatterns[i].before;
         const char *after = sHyphenRemovalPatterns[i].after;
-        
+
         // Calculate lengths
         u32 beforeLen = 0, afterLen = 0;
         while (before[beforeLen]) beforeLen++;
         while (after[afterLen]) afterLen++;
-        
+
         // Check bounds
         if (p < start + beforeLen)
             continue;
-        
+
         // Check "before" pattern
         bool32 matches = TRUE;
         for (u32 j = 0; j < beforeLen; j++)
@@ -6304,10 +6236,10 @@ static bool32 ShouldRemoveHyphen(const u8 *p, const u8 *start, const u8 *end)
                 break;
             }
         }
-        
+
         if (!matches)
             continue;
-        
+
         // Check "after" pattern
         for (u32 j = 0; j < afterLen; j++)
         {
@@ -6317,17 +6249,17 @@ static bool32 ShouldRemoveHyphen(const u8 *p, const u8 *start, const u8 *end)
                 break;
             }
         }
-        
+
         if (matches)
             return TRUE;
     }
-    
+
     // Special case: Poké-mon (with é)
-    if (p >= start + 4 && 
-        p[-4] == CHAR_P && p[-3] == CHAR_o && p[-2] == CHAR_k && p[-1] == CHAR_e_ACUTE && 
+    if (p >= start + 4 &&
+        p[-4] == CHAR_P && p[-3] == CHAR_o && p[-2] == CHAR_k && p[-1] == CHAR_e_ACUTE &&
         p[1] == CHAR_m && p[2] == CHAR_o && p[3] == CHAR_n)
         return TRUE;
-    
+
     return FALSE;
 }
 
