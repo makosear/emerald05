@@ -37,7 +37,7 @@
 /* Info for users
 
 General tilemap setup
-BG3 - scrolling grid background (or not scrolling if you turned the config off) 
+BG3 - scrolling grid background (or not scrolling if you turned the config off)
 BG2 - main UI overlayed on scrolling BG
 BG1 - pop in move effect windows
 BG0 - text windows

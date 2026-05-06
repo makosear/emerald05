@@ -122,7 +122,9 @@ enum SWSHSkillsPageState
 #define PSS_DATA_WINDOW_MEMO_NOTE 0
 #define PSS_DATA_WINDOW_MEMO_EXP 1
 
-#define MOVE_SELECTOR_SPRITES_COUNT 10
+#define MOVE_SLOT_COUNT 5
+#define MOVE_SLOT_SPRITES_COUNT 5
+#define MOVE_FRAME_SPRITES_COUNT 10
 #define HELD_ITEM_BOX_SPRITES_COUNT 20
 #define ABILITY_BOX_SPRITES_COUNT 15
 #define DYNAMAX_LEVEL_SPRITES_COUNT 10
@@ -159,9 +161,10 @@ enum SwShSummarySprites
     SPRITE_ARR_ID_INFO_PROMPT,
     SPRITE_ARR_ID_TERA_TYPE,
     SPRITE_ARR_ID_TYPE, // 2 for mon types, 5 for move types(4 moves and 1 to learn), used interchangeably, because mon types and move types aren't shown on the same screen
-    SPRITE_ARR_ID_MOVE_SELECTOR1 = SPRITE_ARR_ID_TYPE + TYPE_ICON_SPRITE_COUNT, // 10 sprites that make up the selector
-    SPRITE_ARR_ID_MOVE_SELECTOR2 = SPRITE_ARR_ID_MOVE_SELECTOR1 + MOVE_SELECTOR_SPRITES_COUNT,
-    SPRITE_ARR_ID_HELD_ITEM_BOX = SPRITE_ARR_ID_MOVE_SELECTOR2 + MOVE_SELECTOR_SPRITES_COUNT,
+    SPRITE_ARR_ID_MOVE_SLOT = SPRITE_ARR_ID_TYPE + TYPE_ICON_SPRITE_COUNT,
+    SPRITE_ARR_ID_MOVE_CURSOR = SPRITE_ARR_ID_MOVE_SLOT + (MOVE_SLOT_SPRITES_COUNT * MOVE_SLOT_COUNT),
+    SPRITE_ARR_ID_MOVE_FRAME = SPRITE_ARR_ID_MOVE_CURSOR + 1,
+    SPRITE_ARR_ID_HELD_ITEM_BOX = SPRITE_ARR_ID_MOVE_FRAME + MOVE_FRAME_SPRITES_COUNT,
     SPRITE_ARR_ID_ABILITY_BOX = SPRITE_ARR_ID_HELD_ITEM_BOX + HELD_ITEM_BOX_SPRITES_COUNT,
     SPRITE_ARR_ID_DYNAMAX_BOX = SPRITE_ARR_ID_ABILITY_BOX + ABILITY_BOX_SPRITES_COUNT,
     SPRITE_ARR_ID_DYNAMAX_LEVEL = SPRITE_ARR_ID_DYNAMAX_BOX + DYNAMAX_BOX_SPRITES_COUNT,
@@ -367,11 +370,16 @@ static void DestroyDynamaxBoxSprites(void);
 static void CreateHeldItemSprite(void);
 static void DestroyHeldItemIconSprite(void);
 static void CreateStatusSprite(void);
-static void CreateMoveSelectorSprites(u8);
-static void SpriteCB_MoveSelector(struct Sprite *);
-static void DestroyMoveSelectorSprites(u8);
-static void SetMainMoveSelectorColor(u8);
-static void KeepMoveSelectorVisible(u8);
+static void CreateMoveCursorSprite(void);
+static void DestroyMoveCursorSprite(void);
+static void SpriteCB_MoveCursor(struct Sprite *);
+static void CreateMoveFrameSprite(void);
+static void DestroyMoveFrameSprite(void);
+static void CreateMoveSlotSprites(void);
+static void DestroyMoveSlotSprites(void);
+static void UpdateMoveSlotVisibility(void);
+static void UpdateMoveSlotPalette(void);
+static void UpdateMoveNamePalette(u8);
 static void SummaryScreen_DestroyAnimDelayTask(void);
 static void SetShinySprite(void);
 static void SetPokerusCuredSprite(void);
@@ -549,7 +557,8 @@ static const u32 sTeraTypes_Gfx[]                   = INCBIN_U32("graphics/summa
 static const u32 sHeldItemBox_Gfx[]                 = INCBIN_U32("graphics/summary_screen/swsh/held_item_box.4bpp.smol");
 static const u16 sHeldItemBox_Pal[]                 = INCBIN_U16("graphics/summary_screen/swsh/held_item_box.gbapal");
 static const u32 sAbilityBox_Gfx[]                  = INCBIN_U32("graphics/summary_screen/swsh/ability_box.4bpp.smol");
-static const u32 sMoveSelect_Gfx[]                  = INCBIN_U32("graphics/summary_screen/swsh/move_select.4bpp.smol");
+static const u32 sMoveCursor_Gfx[]                  = INCBIN_U32("graphics/summary_screen/swsh/move_cursor.4bpp.smol");
+static const u32 sMoveFrame_Gfx[]                   = INCBIN_U32("graphics/summary_screen/swsh/move_frame.4bpp.smol");
 static const u32 sShinyIcon_Gfx[]                   = INCBIN_U32("graphics/summary_screen/swsh/shiny_icon.4bpp.smol");
 static const u32 sPokerusCuredIcon_Gfx[]            = INCBIN_U32("graphics/summary_screen/swsh/pokerus_cured_icon.4bpp.smol");
 static const u32 sGenderGfx_Icons[]                 = INCBIN_U32("graphics/summary_screen/swsh/gender_icons.4bpp.smol");
@@ -557,6 +566,8 @@ static const u16 sCategoryIcons_Pal[]               = INCBIN_U16("graphics/summa
 static const u32 sCategoryIcons_Gfx[]               = INCBIN_U32("graphics/summary_screen/swsh/category_icons.4bpp.smol");
 static const u16 sFriendshipIcon_Pal[]              = INCBIN_U16("graphics/summary_screen/swsh/heart.gbapal");
 static const u32 sFriendshipIcon_Gfx[]              = INCBIN_U32("graphics/summary_screen/swsh/heart.4bpp.smol");
+static const u32 sMoveSlot_Gfx[]                    = INCBIN_U32("graphics/summary_screen/swsh/move_slot.4bpp.smol");
+static const u16 sMoveSlot_Pal[]                    = INCBIN_U16("graphics/summary_screen/swsh/move_slot.gbapal");
 // rave note: yeah I know doing this with a sprite is mad jank, but I promise I have my reasons
 // mont note: it is maaad jank, but it works, we promise
 static const u32 sRelearnPrompt_Gfx[]               = INCBIN_U32("graphics/summary_screen/swsh/relearn_prompt.4bpp.smol");
@@ -762,7 +773,7 @@ static const struct WindowTemplate sPageMovesTemplate[] = // This is used for bo
         .bg = 0,
         .tilemapLeft = 2,
         .tilemapTop = 3,
-        .width = 19,
+        .width = 20,
         .height = 12,
         .paletteNum = 8,
         .baseBlock = 346,
@@ -774,7 +785,7 @@ static const struct WindowTemplate sPageMovesTemplate[] = // This is used for bo
         .width = 18,
         .height = 5,
         .paletteNum = 6,
-        .baseBlock = 574,
+        .baseBlock = 586,
     },
 };
 static const struct WindowTemplate sPageMemoTemplate[] =
@@ -786,7 +797,7 @@ static const struct WindowTemplate sPageMemoTemplate[] =
         .width = 18,
         .height = 10,
         .paletteNum = 6,
-        .baseBlock = 366,
+        .baseBlock = 346,
     },
     [PSS_DATA_WINDOW_MEMO_EXP] = {
         .bg = 0,
@@ -795,7 +806,7 @@ static const struct WindowTemplate sPageMemoTemplate[] =
         .width = 14,
         .height = 4,
         .paletteNum = 6,
-        .baseBlock = 546,
+        .baseBlock = 526,
     },
 };
 static const u8 sTextColors[][3] =
@@ -853,6 +864,11 @@ static void (*const sTextPrinterTasks[])(u8 taskId) =
 #define TAG_ABILITY_BOX 30019
 #define TAG_DYNAMAX_BOX 30020
 #define TAG_DYNAMAX_LEVELS 30021
+#define TAG_MOVE_SLOT 30022
+#define TAG_MOVE_SLOT_NORMAL 30023
+#define TAG_MOVE_SLOT_HOVER 30024
+#define TAG_MOVE_CURSOR 30025
+#define TAG_MOVE_FRAME 30026
 
 enum SwShCategoryIcon
 {
@@ -1449,7 +1465,109 @@ static const struct SpriteTemplate sSpriteTemplate_TeraType =
     .anims = sSpriteAnimTable_TeraType,
 };
 
-static const struct OamData sOamData_MoveSelector =
+static const struct OamData sOamData_MoveSlot =
+{
+    .y = 0,
+    .affineMode = ST_OAM_AFFINE_OFF,
+    .objMode = ST_OAM_OBJ_NORMAL,
+    .mosaic = FALSE,
+    .bpp = ST_OAM_4BPP,
+    .shape = SPRITE_SHAPE(32x16),
+    .x = 0,
+    .matrixNum = 0,
+    .size = SPRITE_SIZE(32x16),
+    .tileNum = 0,
+    .priority = 1,
+    .paletteNum = 0,
+    .affineParam = 0,
+};
+
+static const union AnimCmd sSpriteAnim_MoveSlot_0[] = {
+    ANIMCMD_FRAME(0, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+static const union AnimCmd sSpriteAnim_MoveSlot_1[] = {
+    ANIMCMD_FRAME(8, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+static const union AnimCmd sSpriteAnim_MoveSlot_2[] = {
+    ANIMCMD_FRAME(16, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+static const union AnimCmd sSpriteAnim_MoveSlot_3[] = {
+    ANIMCMD_FRAME(24, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+
+static const union AnimCmd *const sSpriteAnimTable_MoveSlot[] = {
+    sSpriteAnim_MoveSlot_0,
+    sSpriteAnim_MoveSlot_1,
+    sSpriteAnim_MoveSlot_2,
+    sSpriteAnim_MoveSlot_3,
+};
+
+static const u8 sMoveSlotAnims[MOVE_SLOT_SPRITES_COUNT] = {0, 1, 1, 2, 3};
+
+static const struct CompressedSpriteSheet sMoveSlotSpriteSheet =
+{
+    .data = sMoveSlot_Gfx,
+    .size = (32 * 16 * 4) / 2,
+    .tag = TAG_MOVE_SLOT
+};
+
+static const struct SpritePalette sMoveSlotPalettes[] =
+{
+    {
+        .data = sMoveSlot_Pal,
+        .tag = TAG_MOVE_SLOT_NORMAL,
+    },
+    {
+        .data = sMoveSlot_Pal + 16,
+        .tag = TAG_MOVE_SLOT_HOVER,
+    },
+    {},
+};
+
+static const struct SpriteTemplate sMoveSlotSpriteTemplate =
+{
+    .tileTag = TAG_MOVE_SLOT,
+    .paletteTag = TAG_MOVE_SLOT_NORMAL,
+    .oam = &sOamData_MoveSlot,
+    .anims = sSpriteAnimTable_MoveSlot,
+};
+
+static const struct OamData sOamData_MoveCursor =
+{
+    .y = 0,
+    .affineMode = ST_OAM_AFFINE_OFF,
+    .objMode = ST_OAM_OBJ_NORMAL,
+    .mosaic = FALSE,
+    .bpp = ST_OAM_4BPP,
+    .shape = SPRITE_SHAPE(16x16),
+    .x = 0,
+    .matrixNum = 0,
+    .size = SPRITE_SIZE(16x16),
+    .tileNum = 0,
+    .priority = 1,
+    .paletteNum = 0,
+    .affineParam = 0,
+};
+
+static const struct CompressedSpriteSheet sMoveCursorSpriteSheet =
+{
+    .data = sMoveCursor_Gfx,
+    .size = (16 * 16) / 2,
+    .tag = TAG_MOVE_CURSOR
+};
+
+static const struct SpriteTemplate sSpriteTemplate_MoveCursor =
+{
+    .tileTag = TAG_MOVE_CURSOR,
+    .paletteTag = TAG_HELD_ITEM_BOX,
+    .oam = &sOamData_MoveCursor,
+};
+
+static const struct OamData sOamData_MoveFrame =
 {
     .y = 0,
     .affineMode = ST_OAM_AFFINE_OFF,
@@ -1466,75 +1584,44 @@ static const struct OamData sOamData_MoveSelector =
     .affineParam = 0,
 };
 
-static const union AnimCmd sSpriteAnim_MoveSelectorUnused0[] = {
+static const union AnimCmd sSpriteAnim_MoveFrame_0[] = {
     ANIMCMD_FRAME(0, 0, FALSE, FALSE),
     ANIMCMD_END
 };
-static const union AnimCmd sSpriteAnim_MoveSelectorUnused1[] = {
-    ANIMCMD_FRAME(4, 0, FALSE, FALSE),
-    ANIMCMD_END
-};
-static const union AnimCmd sSpriteAnim_MoveSelectorUnused2[] = {
+static const union AnimCmd sSpriteAnim_MoveFrame_1[] = {
     ANIMCMD_FRAME(8, 0, FALSE, FALSE),
     ANIMCMD_END
 };
-static const union AnimCmd sSpriteAnim_MoveSelectorUnused3[] = {
-    ANIMCMD_FRAME(12, 0, FALSE, FALSE),
-    ANIMCMD_END
-};
-static const union AnimCmd sSpriteAnim_MoveSelectorLeft[] = {
-    ANIMCMD_FRAME(0, 0, FALSE, FALSE),
-    ANIMCMD_END
-};
-static const union AnimCmd sSpriteAnim_MoveSelectorMiddle[] = {
-    ANIMCMD_FRAME(8, 0, FALSE, FALSE),
-    ANIMCMD_END
-};
-static const union AnimCmd sSpriteAnim_MoveSelectorRight[] = {
-    ANIMCMD_FRAME(16, 0, FALSE, FALSE),
-    ANIMCMD_END
-};
-static const union AnimCmd sSpriteAnim_MoveSelectorLeftAlt[] = {
-    ANIMCMD_FRAME(24, 0, FALSE, FALSE),
-    ANIMCMD_END
-};
-static const union AnimCmd sSpriteAnim_MoveSelectorMiddleAlt[] = {
-    ANIMCMD_FRAME(40, 0, FALSE, FALSE),
-    ANIMCMD_END
-};
-static const union AnimCmd sSpriteAnim_MoveSelectorRightAlt[] = {
-    ANIMCMD_FRAME(32, 0, FALSE, FALSE),
+static const union AnimCmd sSpriteAnim_MoveFrame_2[] = {
+    ANIMCMD_FRAME(0, 0, TRUE, FALSE),
     ANIMCMD_END
 };
 
-// anims 0 - 3 are unused but be careful because
-// removing them will mess up the StartAnim calls :)
-static const union AnimCmd *const sSpriteAnimTable_MoveSelector[] = {
-    sSpriteAnim_MoveSelectorUnused0,
-    sSpriteAnim_MoveSelectorUnused1,
-    sSpriteAnim_MoveSelectorUnused2,
-    sSpriteAnim_MoveSelectorUnused3,
-    sSpriteAnim_MoveSelectorLeft,
-    sSpriteAnim_MoveSelectorRight,
-    sSpriteAnim_MoveSelectorMiddle,
-    sSpriteAnim_MoveSelectorLeftAlt,
-    sSpriteAnim_MoveSelectorMiddleAlt,
-    sSpriteAnim_MoveSelectorRightAlt,
+static const union AnimCmd *const sSpriteAnimTable_MoveFrame[] = {
+    sSpriteAnim_MoveFrame_0,
+    sSpriteAnim_MoveFrame_1,
+    sSpriteAnim_MoveFrame_2,
 };
 
-static const struct CompressedSpriteSheet sMoveSelectorSpriteSheet =
+static const u8 sMoveFrameAnims[MOVE_FRAME_SPRITES_COUNT] = {
+    [0] = 0,
+    [1 ... 8] = 1,
+    [9] = 2
+};
+
+static const struct CompressedSpriteSheet sMoveFrameSpriteSheet =
 {
-    .data = sMoveSelect_Gfx,
-    .size = 16*192/2,
-    .tag = TAG_MOVE_SELECTOR
+    .data = sMoveFrame_Gfx,
+    .size = (16 * 32 * 3) / 2,
+    .tag = TAG_MOVE_FRAME
 };
 
-static const struct SpriteTemplate sMoveSelectorSpriteTemplate =
+static const struct SpriteTemplate sMoveFrameSpriteTemplate =
 {
-    .tileTag = TAG_MOVE_SELECTOR,
+    .tileTag = TAG_MOVE_FRAME,
     .paletteTag = TAG_HELD_ITEM_BOX,
-    .oam = &sOamData_MoveSelector,
-    .anims = sSpriteAnimTable_MoveSelector,
+    .oam = &sOamData_MoveFrame,
+    .anims = sSpriteAnimTable_MoveFrame,
 };
 
 static const struct OamData sOamData_HeldItemBox =
@@ -2278,6 +2365,7 @@ static bool8 LoadGraphics(void)
         gMain.state++;
         break;
     case 12:
+        ResetSpriteIds();
         PrintPageSpecificText(sMonSummaryScreen->currPageIndex);
         gMain.state++;
         break;
@@ -2293,7 +2381,6 @@ static bool8 LoadGraphics(void)
         gMain.state++;
         break;
     case 15:
-        ResetSpriteIds();
         CreateMoveTypeIcons();
         if (sMonSummaryScreen->mode == SUMMARY_MODE_SELECT_MOVE && SWSH_SUMMARY_CATEGORY_ICONS)
             ShowCategoryIcon(sMonSummaryScreen->summary.moves[sMonSummaryScreen->firstMoveIndex]);
@@ -2342,6 +2429,8 @@ static bool8 LoadGraphics(void)
     case 23:
         SetTypeIcons();
         TrySetInfoPageIcons();
+        if (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES)
+            CreateMoveSlotSprites();
         gMain.state++;
         break;
     case 24:
@@ -2455,45 +2544,49 @@ static bool8 DecompressGraphics(void)
         sMonSummaryScreen->switchCounter++;
         break;
     case 9:
-        LoadCompressedSpriteSheet(&sMoveSelectorSpriteSheet);
+        LoadCompressedSpriteSheet(&sMoveCursorSpriteSheet);
         sMonSummaryScreen->switchCounter++;
         break;
     case 10:
-        LoadCompressedSpriteSheet(&sStatusIconsSpriteSheet);
+        LoadCompressedSpriteSheet(&sMoveFrameSpriteSheet);
         sMonSummaryScreen->switchCounter++;
         break;
     case 11:
-        LoadSpritePalette(&sStatusIconsSpritePalette);
+        LoadCompressedSpriteSheet(&sStatusIconsSpriteSheet);
         sMonSummaryScreen->switchCounter++;
         break;
     case 12:
-        LoadCompressedSpriteSheet(&sShinyIconSpriteSheet);
+        LoadSpritePalette(&sStatusIconsSpritePalette);
         sMonSummaryScreen->switchCounter++;
         break;
     case 13:
-        LoadSpritePalette(&sSpritePal_CategoryIcons);
+        LoadCompressedSpriteSheet(&sShinyIconSpriteSheet);
         sMonSummaryScreen->switchCounter++;
         break;
     case 14:
-        LoadCompressedSpriteSheet(&sPokerusCuredIconSpriteSheet);
+        LoadSpritePalette(&sSpritePal_CategoryIcons);
         sMonSummaryScreen->switchCounter++;
         break;
     case 15:
+        LoadCompressedSpriteSheet(&sPokerusCuredIconSpriteSheet);
+        sMonSummaryScreen->switchCounter++;
+        break;
+    case 16:
         if (SWSH_SUMMARY_CATEGORY_ICONS)
             LoadCompressedSpriteSheet(&sSpriteSheet_CategoryIcons);
         sMonSummaryScreen->switchCounter++;
         break;
-    case 16:
+    case 17:
         if (SWSH_SUMMARY_SHOW_FRIENDSHIP)
             LoadCompressedSpriteSheet(&sSpriteSheet_FriendshipIcon);
         sMonSummaryScreen->switchCounter++;
         break;
-    case 17:
+    case 18:
         if (SWSH_SUMMARY_SHOW_FRIENDSHIP)
             LoadSpritePalette(&sSpritePal_FriendshipIcon);
         sMonSummaryScreen->switchCounter++;
         break;
-    case 18:
+    case 19:
     #if SWSH_SUMMARY_SWSH_TYPE_ICONS == TRUE
         LoadPalette(sMoveTypes_Pal, OBJ_PLTT_ID(13), 3 * PLTT_SIZE_4BPP);
     #else
@@ -2501,55 +2594,67 @@ static bool8 DecompressGraphics(void)
     #endif
         sMonSummaryScreen->switchCounter++;
         break;
-    case 19:
+    case 20:
         if (SWSH_SUMMARY_SHOW_GIGANTAMAX)
             LoadCompressedSpriteSheet(&sGigantamaxIconSpriteSheet);
         sMonSummaryScreen->switchCounter++;
         break;
-    case 20:
+    case 21:
         if (SWSH_SUMMARY_SHOW_TERA_TYPE)
             LoadCompressedSpriteSheet(&sSpriteSheet_TeraType);
         sMonSummaryScreen->switchCounter++;
         break;
-    case 21:
-        LoadCompressedSpriteSheet(&sSpriteSheet_InfoPrompt);
-        sMonSummaryScreen->switchCounter++;
-        break;
     case 22:
-        if (P_SUMMARY_SCREEN_MOVE_RELEARNER)
-            LoadCompressedSpriteSheet(&sSpriteSheet_RelearnPrompt);
+        LoadCompressedSpriteSheet(&sSpriteSheet_InfoPrompt);
         sMonSummaryScreen->switchCounter++;
         break;
     case 23:
         if (P_SUMMARY_SCREEN_MOVE_RELEARNER)
-            LoadCompressedSpriteSheet(&sSpriteSheet_RelearnPromptSwitch);
+            LoadCompressedSpriteSheet(&sSpriteSheet_RelearnPrompt);
         sMonSummaryScreen->switchCounter++;
         break;
     case 24:
         if (P_SUMMARY_SCREEN_MOVE_RELEARNER)
-            LoadCompressedSpriteSheet(&sSpriteSheet_LRButton);
+            LoadCompressedSpriteSheet(&sSpriteSheet_RelearnPromptSwitch);
         sMonSummaryScreen->switchCounter++;
         break;
     case 25:
-        LoadCompressedSpriteSheet(&sSpriteSheet_HeldItemBox);
+        if (P_SUMMARY_SCREEN_MOVE_RELEARNER)
+            LoadCompressedSpriteSheet(&sSpriteSheet_LRButton);
         sMonSummaryScreen->switchCounter++;
         break;
     case 26:
-        LoadCompressedSpriteSheet(&sSpriteSheet_AbilityBox);
+        LoadCompressedSpriteSheet(&sSpriteSheet_HeldItemBox);
         sMonSummaryScreen->switchCounter++;
         break;
     case 27:
-        if (SWSH_SUMMARY_SHOW_DYNAMAX_LEVEL)
-            LoadCompressedSpriteSheet(&sSpriteSheet_DynamaxLevels);
+        LoadCompressedSpriteSheet(&sSpriteSheet_AbilityBox);
         sMonSummaryScreen->switchCounter++;
         break;
     case 28:
         if (SWSH_SUMMARY_SHOW_DYNAMAX_LEVEL)
-            LoadCompressedSpriteSheet(&sSpriteSheet_DynamaxBox);
+            LoadCompressedSpriteSheet(&sSpriteSheet_DynamaxLevels);
         sMonSummaryScreen->switchCounter++;
         break;
     case 29:
+        if (SWSH_SUMMARY_SHOW_DYNAMAX_LEVEL)
+            LoadCompressedSpriteSheet(&sSpriteSheet_DynamaxBox);
+        sMonSummaryScreen->switchCounter++;
+        break;
+    case 30:
         LoadSpritePalette(&sSpritePal_HeldItemBox);
+        sMonSummaryScreen->switchCounter++;
+        break;
+    case 31:
+        LoadCompressedSpriteSheet(&sMoveSlotSpriteSheet);
+        sMonSummaryScreen->switchCounter++;
+        break;
+    case 32:
+        LoadSpritePalette(&sMoveSlotPalettes[0]);
+        sMonSummaryScreen->switchCounter++;
+        break;
+    case 33:
+        LoadSpritePalette(&sMoveSlotPalettes[1]);
         sMonSummaryScreen->switchCounter = 0;
         return TRUE;
     }
@@ -3215,6 +3320,10 @@ static void ChangePage(u8 taskId, s8 delta)
         DestroyHeldItemBoxSprites();
         DestroyHeldItemIconSprite();
     }
+    else if (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES)
+    {
+        DestroyMoveSlotSprites();
+    }
 
     // Wrap around pages (after clearing the old page's tilemaps)
     if (delta == -1 && sMonSummaryScreen->currPageIndex == sMonSummaryScreen->minPageIndex)
@@ -3305,6 +3414,10 @@ static void PssScrollEnd(u8 taskId)
         CreateAbilityBoxSprites();
         CreateDynamaxLevelSprites();
     }
+    else if (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES)
+    {
+        CreateMoveSlotSprites();
+    }
     TryDrawExperienceProgressBar();
 
     if (sMonSummaryScreen->currPageIndex == PSS_PAGE_INFO)
@@ -3340,7 +3453,9 @@ static void SwitchToMoveSelection(u8 taskId)
 
     CreateTask(Task_ShowEffectTilemap, 1);
 
-    CreateMoveSelectorSprites(SPRITE_ARR_ID_MOVE_SELECTOR1);
+    CreateMoveCursorSprite();
+    UpdateMoveSlotPalette();
+    UpdateMoveNamePalette(sMonSummaryScreen->firstMoveIndex);
     gTasks[taskId].func = Task_HandleInput_MoveSelect;
 }
 
@@ -3425,17 +3540,19 @@ static void ChangeSelectedMove(s16 *taskData, s8 direction, u8 *moveIndexPtr)
 
     PrintMoveDescription(move);
 
+    u8 oldMoveIndex = *moveIndexPtr;
     *moveIndexPtr = newMoveIndex;
-    // Get rid of the 'flicker' effect(while idle) when scrolling.
-    if (moveIndexPtr == &sMonSummaryScreen->firstMoveIndex)
-        KeepMoveSelectorVisible(SPRITE_ARR_ID_MOVE_SELECTOR1);
-    else
-        KeepMoveSelectorVisible(SPRITE_ARR_ID_MOVE_SELECTOR2);
+    UpdateMoveSlotPalette();
+    UpdateMoveNamePalette(oldMoveIndex);
+    UpdateMoveNamePalette(newMoveIndex);
 }
 
 static void CloseMoveSelectMode(u8 taskId)
 {
-    DestroyMoveSelectorSprites(SPRITE_ARR_ID_MOVE_SELECTOR1);
+    u8 currentMove = sMonSummaryScreen->firstMoveIndex;
+    DestroyMoveCursorSprite();
+    UpdateMoveSlotPalette();
+    UpdateMoveNamePalette(currentMove);
     ClearWindowTilemap(PSS_LABEL_WINDOW_PROMPT_SWITCH);
     PrintMoveDescription(MOVE_NONE);
     if (ShouldShowMoveRelearner())
@@ -3450,8 +3567,9 @@ static void CloseMoveSelectMode(u8 taskId)
 static void SwitchToMovePositionSwitchMode(u8 taskId)
 {
     sMonSummaryScreen->secondMoveIndex = sMonSummaryScreen->firstMoveIndex;
-    SetMainMoveSelectorColor(1);
-    CreateMoveSelectorSprites(SPRITE_ARR_ID_MOVE_SELECTOR2);
+    CreateMoveFrameSprite();
+    UpdateMoveSlotPalette();
+    UpdateMoveNamePalette(sMonSummaryScreen->firstMoveIndex);
     gTasks[taskId].func = Task_HandleInput_MovePositionSwitch;
 }
 
@@ -3488,10 +3606,10 @@ static void Task_HandleInput_MovePositionSwitch(u8 taskId)
 static void ExitMovePositionSwitchMode(u8 taskId, bool8 swapMoves)
 {
     enum Move move;
+    u8 oldFirstMoveIndex = sMonSummaryScreen->firstMoveIndex;
 
     PlaySE(SE_SELECT);
-    SetMainMoveSelectorColor(0);
-    DestroyMoveSelectorSprites(SPRITE_ARR_ID_MOVE_SELECTOR2);
+    DestroyMoveFrameSprite();
 
     if (swapMoves == TRUE)
     {
@@ -3510,6 +3628,15 @@ static void ExitMovePositionSwitchMode(u8 taskId, bool8 swapMoves)
         SwapMovesTypeSprites(sMonSummaryScreen->firstMoveIndex, sMonSummaryScreen->secondMoveIndex);
         sMonSummaryScreen->firstMoveIndex = sMonSummaryScreen->secondMoveIndex;
     }
+    else
+    {
+        // when press B to cancel move switching
+        UpdateMoveNamePalette(sMonSummaryScreen->secondMoveIndex);
+    }
+
+    UpdateMoveSlotPalette();
+    UpdateMoveNamePalette(oldFirstMoveIndex);
+    UpdateMoveNamePalette(sMonSummaryScreen->firstMoveIndex);
 
     move = sMonSummaryScreen->summary.moves[sMonSummaryScreen->firstMoveIndex];
     PrintMoveDescription(move);
@@ -3591,7 +3718,9 @@ static void SwapBoxMonMoves(struct BoxPokemon *mon, u8 moveIndex1, u8 moveIndex2
 static void Task_SetHandleReplaceMoveInput(u8 taskId)
 {
     SetNewMoveTypeIcon();
-    CreateMoveSelectorSprites(SPRITE_ARR_ID_MOVE_SELECTOR1);
+    CreateMoveCursorSprite();
+    UpdateMoveSlotPalette();
+    UpdateMoveNamePalette(sMonSummaryScreen->firstMoveIndex);
     gTasks[taskId].func = Task_HandleReplaceMoveInput;
 }
 
@@ -3757,6 +3886,15 @@ static void Task_ShowEffectTilemap(u8 taskId)
         PrintNewMoveDetailsOrCancelText();
         SetNewMoveTypeIcon();
 
+        u8 i;
+        u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_SLOT + (4 * MOVE_SLOT_SPRITES_COUNT)];
+        for (i = 0; i < MOVE_SLOT_SPRITES_COUNT; i++)
+        {
+            if (spriteIds[i] != MAX_SPRITES)
+                gSprites[spriteIds[i]].invisible = FALSE;
+        }
+        UpdateMoveSlotPalette();
+
         if (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES)
             PutWindowTilemap(PSS_LABEL_WINDOW_MOVES_POWER_ACC);
 
@@ -3790,6 +3928,15 @@ static void Task_HideEffectTilemap(u8 taskId)
 
         if (SWSH_SUMMARY_CATEGORY_ICONS)
             DestroyCategoryIcon();
+
+        u8 i;
+        u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_SLOT + (4 * MOVE_SLOT_SPRITES_COUNT)];
+        for (i = 0; i < MOVE_SLOT_SPRITES_COUNT; i++)
+        {
+            if (spriteIds[i] != MAX_SPRITES)
+                gSprites[spriteIds[i]].invisible = TRUE;
+        }
+        UpdateMoveSlotPalette();
 
         tMoveTaskState++;
     }
@@ -5008,12 +5155,15 @@ static void PrintMoveNameAndPP(u8 moveIndex)
     const u8 *text;
     struct PokeSummary *summary = &sMonSummaryScreen->summary;
     u8 moveNameWindowId = AddWindowFromTemplateList(sPageMovesTemplate, PSS_DATA_WINDOW_MOVE_NAMES_PP);
+    bool8 isHighlighted = (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_CURSOR] != SPRITE_NONE
+                           && moveIndex == sMonSummaryScreen->firstMoveIndex);
+    u8 moveNameColorId = isHighlighted ? 3 : 4;
 
     enum Move move = summary->moves[moveIndex];
 
     if (move != 0)
     {
-        PrintTextOnWindowToFitPx_WithFont(moveNameWindowId, GetMoveName(move), 4, moveIndex * 18 + 4, 0, 4, FONT_SMALL, 74);
+        PrintTextOnWindowToFitPx_WithFont(moveNameWindowId, GetMoveName(move), 4, moveIndex * 18 + 4, 0, moveNameColorId, FONT_SMALL, 74);
         pp = CalculatePPWithBonus(move, summary->ppBonuses, moveIndex);
         ConvertIntToDecimalStringN(gStringVar1, summary->pp[moveIndex], STR_CONV_MODE_RIGHT_ALIGN, 2);
         ConvertIntToDecimalStringN(gStringVar2, pp, STR_CONV_MODE_RIGHT_ALIGN, 2);
@@ -5026,8 +5176,8 @@ static void PrintMoveNameAndPP(u8 moveIndex)
     }
     else
     {
-        PrintTextOnWindow(moveNameWindowId, gText_ThreeDashes, 4, moveIndex * 18 + 4, 0, 4);
-        text = gText_TwoDashes;
+        PrintTextOnWindow(moveNameWindowId, gText_EmptyString2, 4, moveIndex * 18 + 4, 0, moveNameColorId);
+        text = gText_EmptyString2;
         ppState = 3;
     }
 
@@ -5126,34 +5276,38 @@ static void PrintNewMoveDetailsOrCancelText(void)
 {
     u8 windowId1 = AddWindowFromTemplateList(sPageMovesTemplate, PSS_DATA_WINDOW_MOVE_NAMES_PP);
     u8 moveIndex = 4;
+    u8 xOffset = 8;
+    bool8 isHighlighted = (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_CURSOR] != SPRITE_NONE
+                           && sMonSummaryScreen->firstMoveIndex == 4);
 
     if (sMonSummaryScreen->newMove == MOVE_NONE)
     {
-
-        PrintTextOnWindowWithFont(windowId1, sText_Cancel, 4, 4 * 18 + 4, 0, 5, FONT_SMALL);
+        u8 cancelColorId = isHighlighted ? 1 : 5;
+        PrintTextOnWindowWithFont(windowId1, sText_Cancel, 4 + xOffset, 4 * 18 + 4, 0, cancelColorId, FONT_SMALL);
     }
     else
     {
         enum Move move = sMonSummaryScreen->newMove;
+        u8 moveNameColorId = isHighlighted ? 3 : 4;
 
         if (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES)
-            PrintTextOnWindowToFitPx_WithFont(windowId1, GetMoveName(move), 4, moveIndex * 18 + 4, 0, 4, FONT_SMALL, 74);
+            PrintTextOnWindowToFitPx_WithFont(windowId1, GetMoveName(move), 4 + xOffset, moveIndex * 18 + 4, 0, moveNameColorId, FONT_SMALL, 74);
         else
-            PrintTextOnWindowToFitPx_WithFont(windowId1, GetMoveName(move), 4, moveIndex * 18 + 4, 0, 4, FONT_SMALL, 74);
+            PrintTextOnWindowToFitPx_WithFont(windowId1, GetMoveName(move), 4 + xOffset, moveIndex * 18 + 4, 0, moveNameColorId, FONT_SMALL, 74);
 
         ConvertIntToDecimalStringN(gStringVar1, gMovesInfo[move].pp, STR_CONV_MODE_RIGHT_ALIGN, 2);
         DynamicPlaceholderTextUtil_Reset();
         DynamicPlaceholderTextUtil_SetPlaceholderPtr(0, gStringVar1);
         DynamicPlaceholderTextUtil_SetPlaceholderPtr(1, gStringVar1);
         DynamicPlaceholderTextUtil_ExpandPlaceholders(gStringVar4, sMovesPPLayout);
-        PrintTextOnWindowWithFont(windowId1, gStringVar4, 121, moveIndex * 18 + 4, 0, 3, FONT_SMALL);
+        PrintTextOnWindowWithFont(windowId1, gStringVar4, 121 + xOffset, moveIndex * 18 + 4, 0, 3, FONT_SMALL);
     }
 }
 
 static void ClearCancelText(void)
 {
     u8 windowId = AddWindowFromTemplateList(sPageMovesTemplate, PSS_DATA_WINDOW_MOVE_NAMES_PP);
-    FillWindowPixelRect(windowId, PIXEL_FILL(0), 0, 77, 72, 16);
+    FillWindowPixelRect(windowId, PIXEL_FILL(0), 0, 77, 80, 16);
     CopyWindowToVram(windowId, COPYWIN_GFX);
 }
 
@@ -5240,6 +5394,8 @@ static void SetTypeIcons(void)
     case PSS_PAGE_BATTLE_MOVES:
         SetMoveTypeIcons();
         SetNewMoveTypeIcon();
+        UpdateMoveSlotVisibility();
+        UpdateMoveSlotPalette();
         break;
     }
 }
@@ -5359,7 +5515,7 @@ static void SetNewMoveTypeIcon(void)
     {
         enum MonState state = gMain.inBattle ? MON_IN_BATTLE : MON_OUTSIDE_BATTLE;
         u32 type = P_SHOW_DYNAMIC_TYPES ? CheckDynamicMoveType(&sMonSummaryScreen->currentMon, move, 0, state) : GetMoveType(move);
-        SetTypeSpritePosAndPal(type, 96, 27 + (i * 18), SPRITE_ARR_ID_TYPE + 4);
+        SetTypeSpritePosAndPal(type, 96 + 8, 27 + (i * 18), SPRITE_ARR_ID_TYPE + 4);
     }
 }
 
@@ -5553,9 +5709,9 @@ static void CreateMonMarkingsSprite(struct Pokemon *mon)
     sMonSummaryScreen->markingsSprite = sprite;
     if (sprite != NULL)
     {
-        sMonSummaryScreen->markingComboTilesPtr = (void *) OBJ_VRAM0 + 32 * GetSpriteTileStartByTag(TAG_MON_MARKINGS);        
+        sMonSummaryScreen->markingComboTilesPtr = (void *) OBJ_VRAM0 + 32 * GetSpriteTileStartByTag(TAG_MON_MARKINGS);
         UpdateMonMarkingTiles(GetMonData(mon, MON_DATA_MARKINGS), sMonSummaryScreen->markingComboTilesPtr);
-        
+
         sMonSummaryScreen->markingsSprite->x = 137;
         sMonSummaryScreen->markingsSprite->y = 87;
         sMonSummaryScreen->markingsSprite->oam.priority = 2;
@@ -5896,91 +6052,168 @@ static void HandleStatusSprite(struct Pokemon *mon)
     }
 }
 
-static void CreateMoveSelectorSprites(u8 idArrayStart)
+static void CreateMoveCursorSprite(void)
+{
+    if (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES)
+    {
+        sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_CURSOR] = CreateSprite(&sSpriteTemplate_MoveCursor, 10, 35, 0);
+        gSprites[sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_CURSOR]].callback = SpriteCB_MoveCursor;
+    }
+}
+
+static void DestroyMoveCursorSprite(void)
+{
+    DestroySpriteInArray(SPRITE_ARR_ID_MOVE_CURSOR);
+}
+
+static void SpriteCB_MoveCursor(struct Sprite *sprite)
+{
+    bool8 frameActive = (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_FRAME] != SPRITE_NONE);
+    u8 moveIndex;
+    s16 xOffset = 0;
+
+    if (frameActive)
+        moveIndex = sMonSummaryScreen->secondMoveIndex;
+    else
+        moveIndex = sMonSummaryScreen->firstMoveIndex;
+    // xOffset = (moveIndex == 4) ? 8 : 0;
+    sprite->y2 = moveIndex * 18;
+    sprite->x2 = xOffset;
+}
+
+static void CreateMoveFrameSprite(void)
 {
     u8 i;
-    u8 *spriteIds = &sMonSummaryScreen->spriteIds[idArrayStart];
+    u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_FRAME];
 
     if (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES)
     {
-        u8 subpriority = 0;
-        if (idArrayStart == SPRITE_ARR_ID_MOVE_SELECTOR1)
-            subpriority = 1;
-
-        for (i = 0; i < MOVE_SELECTOR_SPRITES_COUNT; i++)
+        for (i = 0; i < MOVE_FRAME_SPRITES_COUNT; i++)
         {
-            spriteIds[i] = CreateSprite(&sMoveSelectorSpriteTemplate, i * 16 + 17, 43, subpriority);
-            if (i == 0)
-                StartSpriteAnim(&gSprites[spriteIds[i]], 4); // left
-            else if (i == MOVE_SELECTOR_SPRITES_COUNT - 1)
-                StartSpriteAnim(&gSprites[spriteIds[i]], 5); // right, actually the same as left, but flipped
-            else
-                StartSpriteAnim(&gSprites[spriteIds[i]], 6); // middle
-
-            gSprites[spriteIds[i]].callback = SpriteCB_MoveSelector;
-            gSprites[spriteIds[i]].data[0] = idArrayStart;
-            gSprites[spriteIds[i]].data[1] = 0;
+            spriteIds[i] = CreateSprite(&sMoveFrameSpriteTemplate, i * 16 + 17, 43, 1);
+            StartSpriteAnim(&gSprites[spriteIds[i]], sMoveFrameAnims[i]);
+            gSprites[spriteIds[i]].y2 = sMonSummaryScreen->firstMoveIndex * 18;
         }
     }
 }
 
-static void SpriteCB_MoveSelector(struct Sprite *sprite)
+static void DestroyMoveFrameSprite(void)
 {
-    if (sprite->animNum > 3 && sprite->animNum < 7)
+    u8 i;
+    for (i = 0; i < MOVE_FRAME_SPRITES_COUNT; i++)
+        DestroySpriteInArray(SPRITE_ARR_ID_MOVE_FRAME + i);
+}
+
+static void CreateMoveSlotSprites(void)
+{
+    u8 slot, i;
+    u8 spriteId;
+
+    for (slot = 0; slot < MOVE_SLOT_COUNT; slot++)
     {
-        sprite->data[1] = (sprite->data[1] + 1) & 0x1F;
-        if (sprite->data[1] > 24)
-            sprite->invisible = FALSE; // Set to FALSE so selector doesn't blink. Probably more simple ways to disable.
+        u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_SLOT + (slot * MOVE_SLOT_SPRITES_COUNT)];
+        s16 y = 36 + (slot * 18);
+        s16 xOffset = (slot == 4) ? 8 : 0;
+
+        for (i = 0; i < MOVE_SLOT_SPRITES_COUNT; i++)
+        {
+            s16 x = 26 + (i * 32) + xOffset;
+            spriteId = CreateSprite(&sMoveSlotSpriteTemplate, x, y, 3);
+            spriteIds[i] = spriteId;
+            StartSpriteAnim(&gSprites[spriteId], sMoveSlotAnims[i]);
+        }
+    }
+    UpdateMoveSlotVisibility();
+    UpdateMoveSlotPalette();
+}
+
+static void DestroyMoveSlotSprites(void)
+{
+    u8 i;
+    for (i = 0; i < MOVE_SLOT_SPRITES_COUNT * MOVE_SLOT_COUNT; i++)
+        DestroySpriteInArray(SPRITE_ARR_ID_MOVE_SLOT + i);
+}
+
+static void UpdateMoveSlotVisibility(void)
+{
+    u8 slot, i;
+
+    for (slot = 0; slot < MOVE_SLOT_COUNT; slot++)
+    {
+        u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_SLOT + (slot * MOVE_SLOT_SPRITES_COUNT)];
+        bool8 visible = (slot < MAX_MON_MOVES)
+            ? (sMonSummaryScreen->summary.moves[slot] != MOVE_NONE)
+            : (sMonSummaryScreen->newMove != MOVE_NONE);
+
+        for (i = 0; i < MOVE_SLOT_SPRITES_COUNT; i++)
+        {
+            if (spriteIds[i] != MAX_SPRITES)
+                gSprites[spriteIds[i]].invisible = !visible;
+        }
+    }
+}
+
+static void UpdateMoveSlotPalette(void)
+{
+    u8 slot, i;
+    u8 normalPalSlot = IndexOfSpritePaletteTag(TAG_MOVE_SLOT_NORMAL);
+    u8 hoverPalSlot = IndexOfSpritePaletteTag(TAG_MOVE_SLOT_HOVER);
+    bool8 cursorActive = (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_CURSOR] != SPRITE_NONE);
+    bool8 frameActive = (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_FRAME] != SPRITE_NONE);
+
+    for (slot = 0; slot < MOVE_SLOT_COUNT; slot++)
+    {
+        u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_SLOT + (slot * MOVE_SLOT_SPRITES_COUNT)];
+        bool8 isHighlighted = frameActive
+            ? (slot == sMonSummaryScreen->secondMoveIndex)
+            : (cursorActive && slot == sMonSummaryScreen->firstMoveIndex);
+        u8 paletteNum = isHighlighted ? hoverPalSlot : normalPalSlot;
+
+        for (i = 0; i < MOVE_SLOT_SPRITES_COUNT; i++)
+        {
+            if (spriteIds[i] != MAX_SPRITES)
+                gSprites[spriteIds[i]].oam.paletteNum = paletteNum;
+        }
+    }
+}
+
+static void UpdateMoveNamePalette(u8 moveIndex)
+{
+    struct PokeSummary *summary = &sMonSummaryScreen->summary;
+    u8 windowId = AddWindowFromTemplateList(sPageMovesTemplate, PSS_DATA_WINDOW_MOVE_NAMES_PP);
+    bool8 cursorActive = (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_CURSOR] != SPRITE_NONE);
+    bool8 frameActive = (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_FRAME] != SPRITE_NONE);
+    bool8 isHighlighted = frameActive
+        ? (moveIndex == sMonSummaryScreen->secondMoveIndex)
+        : (cursorActive && moveIndex == sMonSummaryScreen->firstMoveIndex);
+    s16 xPos = (moveIndex == 4) ? 4 + 8 : 4;
+    FillWindowPixelRect(windowId, PIXEL_FILL(0), xPos, moveIndex * 18 + 4, 80, 16);
+
+    if (moveIndex == 4)
+    {
+        if (sMonSummaryScreen->newMove == MOVE_NONE)
+        {
+            u8 cancelColorId = isHighlighted ? 1 : 5;
+            PrintTextOnWindowWithFont(windowId, sText_Cancel, xPos, moveIndex * 18 + 4, 0, cancelColorId, FONT_SMALL);
+        }
         else
-            sprite->invisible = FALSE;
+        {
+            u8 moveNameColorId = isHighlighted ? 3 : 4;
+            PrintTextOnWindowToFitPx_WithFont(windowId, GetMoveName(sMonSummaryScreen->newMove), xPos, moveIndex * 18 + 4, 0, moveNameColorId, FONT_SMALL, 74);
+        }
     }
     else
     {
-        sprite->data[1] = 0;
-        sprite->invisible = FALSE;
-    }
+        u8 moveNameColorId = isHighlighted ? 3 : 4;
+        enum Move move = summary->moves[moveIndex];
 
-    if (sprite->data[0] == SPRITE_ARR_ID_MOVE_SELECTOR1)
-        sprite->y2 = sMonSummaryScreen->firstMoveIndex * 18;
-    else
-        sprite->y2 = sMonSummaryScreen->secondMoveIndex * 18;
-}
-
-static void DestroyMoveSelectorSprites(u8 firstArrayId)
-{
-    u8 i;
-    for (i = 0; i < MOVE_SELECTOR_SPRITES_COUNT; i++)
-        DestroySpriteInArray(firstArrayId + i);
-}
-
-static void SetMainMoveSelectorColor(u8 which)
-{
-    u8 i;
-    u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_SELECTOR1];
-
-    which *= 3;
-    for (i = 0; i < MOVE_SELECTOR_SPRITES_COUNT; i++)
-    {
-        if (i == 0)
-            StartSpriteAnim(&gSprites[spriteIds[i]], which + 4);
-        else if (i == MOVE_SELECTOR_SPRITES_COUNT - 1)
-            StartSpriteAnim(&gSprites[spriteIds[i]], which + 5);
+        if (move != 0)
+            PrintTextOnWindowToFitPx_WithFont(windowId, GetMoveName(move), 4, moveIndex * 18 + 4, 0, moveNameColorId, FONT_SMALL, 74);
         else
-            StartSpriteAnim(&gSprites[spriteIds[i]], which + 6);
+            PrintTextOnWindow(windowId, gText_EmptyString2, 4, moveIndex * 18 + 4, 0, moveNameColorId);
     }
 }
 
-static void KeepMoveSelectorVisible(u8 firstSpriteId)
-{
-    u8 i;
-    u8 *spriteIds = &sMonSummaryScreen->spriteIds[firstSpriteId];
-
-    for (i = 0; i < MOVE_SELECTOR_SPRITES_COUNT; i++)
-    {
-        gSprites[spriteIds[i]].data[1] = 0;
-        gSprites[spriteIds[i]].invisible = FALSE;
-    }
-}
 
 // New helper function that performs the formatting logic
 static u8 PerformTextFormatting(u8 *result, s32 maxWidth, u8 fontId, const u8 *str, s16 letterSpacing, u32 *outLineCount)
