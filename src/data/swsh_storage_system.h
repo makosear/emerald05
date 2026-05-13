@@ -481,7 +481,7 @@ static const struct BgTemplate sBgTemplates[] =
         .bg = 2,
         .charBaseIndex = 2,
         .mapBaseIndex = 27,
-        .screenSize = 1,
+        .screenSize = 0,
         .paletteMode = 0,
         .priority = 2,
         .baseTile = 0
@@ -508,79 +508,119 @@ static const struct OamData sOamData_BoxSelection =
     .objMode = ST_OAM_OBJ_NORMAL,
     .mosaic = FALSE,
     .bpp = ST_OAM_4BPP,
-    .size = SPRITE_SIZE(32x64),
+    .size = SPRITE_SIZE(32x32),
     .x = 0,
     .matrixNum = 0,
-    .shape = SPRITE_SHAPE(32x64),
+    .shape = SPRITE_SHAPE(32x32),
     .tileNum = 0,
-    .priority = 0,
+    .priority = 1,
     .paletteNum = 0,
     .affineParam = 0,
-};
-
-static const union AnimCmd sSpriteAnim_BoxSelectionLeft[] = {
-    ANIMCMD_FRAME(0, 0, FALSE, FALSE),
-    ANIMCMD_END
-};
-
-static const union AnimCmd sSpriteAnim_BoxSelectionRight[] = {
-    ANIMCMD_FRAME(0, 0, TRUE, FALSE),
-    ANIMCMD_END
-};
-
-static const union AnimCmd *const sSpriteAnimTable_BoxSelection[] = {
-    sSpriteAnim_BoxSelectionLeft,
-    sSpriteAnim_BoxSelectionRight,
 };
 
 static const struct CompressedSpriteSheet sSpriteSheet_BoxSelection =
 {
     .data = sBoxSelection_Gfx,
-    .size = (32 * 64) / 2,
+    .size = (32 * 32 * 2) / 2,
     .tag = GFXTAG_BOX_SELECTION,
 };
 
+static const union AnimCmd sAnim_BoxSelection_Normal[] =
+{
+    ANIMCMD_FRAME(0, 5),
+    ANIMCMD_END
+};
+
+static const union AnimCmd sAnim_BoxSelection_Hover[] =
+{
+    ANIMCMD_FRAME(16, 5),
+    ANIMCMD_END
+};
+
+static const union AnimCmd *const sAnims_BoxSelection[] =
+{
+    sAnim_BoxSelection_Normal,
+    sAnim_BoxSelection_Hover
+};
+
+    
 static const struct SpriteTemplate sSpriteTemplate_BoxSelection =
 {
     .tileTag = GFXTAG_BOX_SELECTION,
     .paletteTag = PALTAG_MISC_3,
     .oam = &sOamData_BoxSelection,
-    .anims = sSpriteAnimTable_BoxSelection,
+    .anims = sAnims_BoxSelection,
 };
 
 // ============================================================================
 // Box Selection Text Overlay Sprite (loaded dynamically like BOX_TITLE)
 // ============================================================================
 
-static const struct OamData sOamData_BoxSelectionText =
+static const struct OamData sOamData_BoxSelection_BoxName =
 {
     .y = 0,
     .affineMode = ST_OAM_AFFINE_OFF,
     .objMode = ST_OAM_OBJ_NORMAL,
     .mosaic = FALSE,
     .bpp = ST_OAM_4BPP,
-    .size = SPRITE_SIZE(64x32),
+    .size = SPRITE_SIZE(32x16),
     .x = 0,
     .matrixNum = 0,
-    .shape = SPRITE_SHAPE(64x32),
+    .shape = SPRITE_SHAPE(32x16),
     .tileNum = 0,
-    .priority = 0,
+    .priority = 2,
     .paletteNum = 0,
     .affineParam = 0,
 };
 
-static const struct SpriteTemplate sSpriteTemplate_BoxSelectionText =
+static const struct OamData sOamData_BoxSelection_MonCount =
 {
-    .tileTag = GFXTAG_BOX_SELECTION_BOX_NAME,
-    .paletteTag = PALTAG_MISC_3,
-    .oam = &sOamData_BoxSelectionText,
+    .y = 0,
+    .affineMode = ST_OAM_AFFINE_OFF,
+    .objMode = ST_OAM_OBJ_NORMAL,
+    .mosaic = FALSE,
+    .bpp = ST_OAM_4BPP,
+    .size = SPRITE_SIZE(16x16),
+    .x = 0,
+    .matrixNum = 0,
+    .shape = SPRITE_SHAPE(16x16),
+    .tileNum = 0,
+    .priority = 1,
+    .paletteNum = 0,
+    .affineParam = 0,
 };
 
-static const struct SpriteTemplate sSpriteTemplate_BoxSelectionText2 =
+static const union AnimCmd sAnim_BoxSelection_BoxName_Left[] =
+{
+    ANIMCMD_FRAME(0, 5),
+    ANIMCMD_END
+};
+
+static const union AnimCmd sAnim_BoxSelection_BoxName_Right[] =
+{
+    ANIMCMD_FRAME(8, 5),
+    ANIMCMD_END
+};
+
+static const union AnimCmd *const sAnims_BoxSelection_BoxName[] =
+{
+    sAnim_BoxSelection_BoxName_Left,
+    sAnim_BoxSelection_BoxName_Right
+};
+
+static const struct SpriteTemplate sSpriteTemplate_BoxSelection_BoxName =
+{
+    .tileTag = GFXTAG_BOX_SELECTION_BOX_NAME,
+    .paletteTag = PALTAG_MISC_1,
+    .oam = &sOamData_BoxSelection_BoxName,
+    .anims = sAnims_BoxSelection_BoxName,
+};
+
+static const struct SpriteTemplate sSpriteTemplate_BoxSelection_MonCount =
 {
     .tileTag = GFXTAG_BOX_SELECTION_PER_30,
     .paletteTag = PALTAG_MISC_3,
-    .oam = &sOamData_BoxSelectionText,
+    .oam = &sOamData_BoxSelection_MonCount,
 };
 
 // ============================================================================
@@ -594,10 +634,10 @@ static const struct OamData sOamData_BoxTitleFrame =
     .objMode = ST_OAM_OBJ_NORMAL,
     .mosaic = FALSE,
     .bpp = ST_OAM_4BPP,
-    .size = SPRITE_SIZE(16x16),
+    .size = SPRITE_SIZE(32x16),
     .x = 0,
     .matrixNum = 0,
-    .shape = SPRITE_SHAPE(16x16),
+    .shape = SPRITE_SHAPE(32x16),
     .tileNum = 0,
     .priority = 2,
     .paletteNum = 0,
@@ -610,7 +650,7 @@ static const union AnimCmd sSpriteAnim_BoxTitleFrame_0[] = {
 };
 
 static const union AnimCmd sSpriteAnim_BoxTitleFrame_1[] = {
-    ANIMCMD_FRAME(4, 0, FALSE, FALSE),
+    ANIMCMD_FRAME(8, 0, FALSE, FALSE),
     ANIMCMD_END
 };
 
@@ -625,12 +665,12 @@ static const union AnimCmd *const sSpriteAnimTable_BoxTitleFrame[] = {
     sSpriteAnim_BoxTitleFrame_2,
 };
 
-static const u8 sBoxTitleFrameAnims[7] = {0, 1, 1, 1, 1, 1, 2};
+static const u8 sBoxTitleFrameAnims[4] = {0, 1, 1, 2};
 
 static const struct CompressedSpriteSheet sSpriteSheet_BoxTitleFrame =
 {
     .data = sBoxTitleFrame_Gfx,
-    .size = (16 * 16 * 2) / 2,
+    .size = (32 * 16 * 2) / 2,
     .tag = GFXTAG_BOX_TITLE_FRAME,
 };
 
