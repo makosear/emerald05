@@ -256,7 +256,7 @@ enum {
     GFXTAG_BOX_SELECTION_PER_30,
     GFXTAG_LIST_MENU_ARROW,
     GFXTAG_MARKING_MENU,
-    GFXTAG_14, // Unused
+    GFXTAG_MESSAGE_WINDOW,
     GFXTAG_15, // Unused
     GFXTAG_MARKING_COMBO,
     GFXTAG_17, // Unused
@@ -568,7 +568,6 @@ EWRAM_DATA static u8 sPreviousBoxOption = 0;
 EWRAM_DATA static struct ChooseBoxMenu *sChooseBoxMenu = NULL;
 EWRAM_DATA static struct PokemonStorageSystemData *sStorage = NULL;
 EWRAM_DATA static u8 sCurrentBoxOption = 0;
-EWRAM_DATA static u8 sDepositBoxId = 0;
 EWRAM_DATA static u8 sWhichToReshow = 0;
 EWRAM_DATA static u8 sLastUsedBox = 0;
 EWRAM_DATA static u16 sMovingItemId = 0;
@@ -582,6 +581,7 @@ EWRAM_DATA static u8 sMovingMonOrigBoxPos = 0;
 EWRAM_DATA static u8 sCursorMode = 0;
 EWRAM_DATA static bool8 sJustOpenedBag = 0;
 EWRAM_DATA static bool8 sRefreshDisplayMonGfx = FALSE;
+EWRAM_DATA static u8 sMessageWindowSpriteIds[6] = {0};
 EWRAM_DATA static struct MarkingsMenuSwSh *sMarkMenu = NULL;
 
 // Main tasks
@@ -857,6 +857,8 @@ static void FreePokeStorageData(void);
 static bool8 InitPokeStorageWindows(void);
 static void ShowYesNoWindow(s8);
 static void PrintMessage(u8 id);
+static void CreateMessageWindowSprite(void);
+static void DestroyMessageWindowSprite(void);
 
 // Tilemap utility
 static void TilemapUtil_Move(u8, u8, s8);
@@ -1574,7 +1576,6 @@ static void ResetForPokeStorage(void)
 static void InitStartingPosData(void)
 {
     ClearSavedCursorPos();
-    sDepositBoxId = 0;
 }
 
 static void SetMonIconTransparency(void)
@@ -1612,6 +1613,7 @@ static void Task_InitPokeStorage(u8 taskId)
         SetGpuReg(REG_OFFSET_DISPCNT, 0);
         CpuFill32(0, (void *)VRAM, VRAM_SIZE);
         ResetForPokeStorage();
+        memset(sMessageWindowSpriteIds, MAX_SPRITES, sizeof(sMessageWindowSpriteIds));
         if (sStorage->isReopening)
         {
             switch (sWhichToReshow)
@@ -2356,12 +2358,12 @@ static void Task_DepositMon(u8 taskId)
         if (!sIsMonBeingMoved)
         {
             InitMonPlaceChange(CHANGE_GRAB);
-            sStorage->state = 20;
+            sStorage->state = 14;
         }
         else
         {
             LoadChooseBoxMenuGfx(&sStorage->chooseBoxMenu, GFXTAG_BOX_SELECTION, PALTAG_MISC_3, FALSE);
-            ChooseBoxMenu_CreateSprites(sDepositBoxId);
+            ChooseBoxMenu_CreateSprites(StorageGetCurrentBox());
             sStorage->state++;
         }
         break;
@@ -2385,16 +2387,14 @@ static void Task_DepositMon(u8 taskId)
             else
             {
                 PlaySE(SE_SELECT);
-                sDepositBoxId = boxId;
                 sStorage->newCurrBoxId = boxId;
                 ClearBottomWindow();
                 ChooseBoxMenu_DestroySprites();
                 FreeChooseBoxMenu();
-                SetCursorPosition(CURSOR_AREA_BOX_TITLE, 0);
                 if (sStorage->newCurrBoxId == StorageGetCurrentBox())
-                    sStorage->state = 14;
+                    sStorage->state = 4;
                 else
-                    sStorage->state = 15;
+                    sStorage->state = 2;
             }
             break;
         }
@@ -2481,23 +2481,15 @@ static void Task_DepositMon(u8 taskId)
             SetPokeStorageTask(Task_PokeStorageMain);
         break;
     case 14:
-        if (!UpdateCursorPos())
-            sStorage->state = 4;
-        break;
-    case 15:
-        if (!UpdateCursorPos())
-            sStorage->state = 2;
-        break;
-    case 20:
         if (!DoMonPlaceChange())
         {
             SetMovingMonPriority(1);
             LoadChooseBoxMenuGfx(&sStorage->chooseBoxMenu, GFXTAG_BOX_SELECTION, PALTAG_MISC_3, FALSE);
-            ChooseBoxMenu_CreateSprites(sDepositBoxId);
+            ChooseBoxMenu_CreateSprites(StorageGetCurrentBox());
             sStorage->state++;
         }
         break;
-    case 21:
+    case 15:
         boxId = HandleChooseBoxMenuInput();
         switch (boxId)
         {
@@ -2507,7 +2499,7 @@ static void Task_DepositMon(u8 taskId)
             ClearBottomWindow();
             ChooseBoxMenu_DestroySprites();
             FreeChooseBoxMenu();
-            sStorage->state = 22;
+            sStorage->state = 16;
             break;
         default:
             if (GetFirstFreeBoxSpot(boxId) == -1)
@@ -2517,28 +2509,26 @@ static void Task_DepositMon(u8 taskId)
             else
             {
                 PlaySE(SE_SELECT);
-                sDepositBoxId = boxId;
                 sStorage->newCurrBoxId = boxId;
                 ClearBottomWindow();
                 ChooseBoxMenu_DestroySprites();
                 FreeChooseBoxMenu();
-                SetCursorPosition(CURSOR_AREA_BOX_TITLE, 0);
                 if (sStorage->newCurrBoxId == StorageGetCurrentBox())
-                    sStorage->state = 14;
+                    sStorage->state = 4;
                 else
-                    sStorage->state = 15;
+                    sStorage->state = 2;
             }
             break;
         }
         break;
-    case 22:
+    case 16:
         if (!UpdateCursorPos())
         {
             InitMonPlaceChange(CHANGE_PLACE);
             sStorage->state++;
         }
         break;
-    case 23:
+    case 17:
         if (!DoMonPlaceChange())
             SetPokeStorageTask(Task_PokeStorageMain);
         break;
@@ -4384,9 +4374,9 @@ static void PrintMessage(u8 id)
     }
 
     DynamicPlaceholderTextUtil_ExpandPlaceholders(sStorage->messageText, sMessages[id].text);
-    FillWindowPixelBuffer(WIN_MESSAGE, PIXEL_FILL(1));
-    AddTextPrinterParameterized4(WIN_MESSAGE, FONT_NORMAL, 0, 1, 0, 0, sTextColors[0], TEXT_SKIP_DRAW, sStorage->messageText);
-    DrawTextBorderOuter(WIN_MESSAGE, 192, 14);
+    CreateMessageWindowSprite();
+    FillWindowPixelBuffer(WIN_MESSAGE, PIXEL_FILL(0));
+    AddTextPrinterParameterized4(WIN_MESSAGE, FONT_NORMAL, 0, 1, 0, 0, sTextColors[3], TEXT_SKIP_DRAW, sStorage->messageText);
     PutWindowTilemap(WIN_MESSAGE);
     CopyWindowToVram(WIN_MESSAGE, COPYWIN_GFX);
     ScheduleBgCopyTilemapToVram(0);
@@ -4401,9 +4391,46 @@ static void ShowYesNoWindow(s8 cursorPos)
 
 static void ClearBottomWindow(void)
 {
+    DestroyMessageWindowSprite();
     ClearStdWindowAndFrameToTransparent(WIN_MESSAGE, FALSE);
     UpdateMonInfoTilemap();
     ScheduleBgCopyTilemapToVram(0);
+}
+
+static void CreateMessageWindowSprite(void)
+{
+    u8 i;
+
+    if (sMessageWindowSpriteIds[0] != MAX_SPRITES)
+        return;
+
+    LoadCompressedSpriteSheet(&sSpriteSheet_MessageWindow);
+    for (i = 0; i < ARRAY_COUNT(sMessageWindowSpriteIds); i++)
+    {
+        u8 spriteId = CreateSprite(&sSpriteTemplate_MessageWindow, 72 + i * 32, 144, 0);
+        if (spriteId != MAX_SPRITES)
+        {
+            StartSpriteAnim(&gSprites[spriteId], sMessageWindowAnims[i]);
+            gSprites[spriteId].oam.priority = 1;
+            gSprites[spriteId].subpriority = 0;
+        }
+        sMessageWindowSpriteIds[i] = spriteId;
+    }
+}
+
+static void DestroyMessageWindowSprite(void)
+{
+    u8 i;
+
+    for (i = 0; i < ARRAY_COUNT(sMessageWindowSpriteIds); i++)
+    {
+        if (sMessageWindowSpriteIds[i] != MAX_SPRITES)
+        {
+            DestroySprite(&gSprites[sMessageWindowSpriteIds[i]]);
+            sMessageWindowSpriteIds[i] = MAX_SPRITES;
+        }
+    }
+    FreeSpriteTilesByTag(GFXTAG_MESSAGE_WINDOW);
 }
 
 static void AddWallpaperMenu(void)

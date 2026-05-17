@@ -57,18 +57,19 @@ static const u32 sMonInfo_Gfx[]               = INCBIN_U32("graphics/pokemon_sto
 static const u32 sMonInfo_Tilemap[]           = INCBIN_U32("graphics/pokemon_storage/swsh/mon_info.bin.smolTM");
 static const u16 sTextWindows_Pal[]           = INCBIN_U16("graphics/pokemon_storage/swsh/text_windows.gbapal");
 
-static const u32 sCursor_Gfx[]                = INCBIN_U32("graphics/pokemon_storage/swsh/cursor.4bpp.smol");
-static const u16 sCursor_Pal[]                = INCBIN_U16("graphics/pokemon_storage/swsh/cursor.gbapal");
 static const u32 sBoxSelection_Gfx[]          = INCBIN_U32("graphics/pokemon_storage/swsh/box_selection.4bpp.smol");
 static const u32 sBoxTitleFrame_Gfx[]         = INCBIN_U32("graphics/pokemon_storage/swsh/box_title_frame.4bpp.smol");
 static const u32 sBoxTitleArrow_Gfx[]         = INCBIN_U32("graphics/pokemon_storage/swsh/box_title_arrow.4bpp.smol");
+static const u32 sCursor_Gfx[]                = INCBIN_U32("graphics/pokemon_storage/swsh/cursor.4bpp.smol");
+static const u16 sCursor_Pal[]                = INCBIN_U16("graphics/pokemon_storage/swsh/cursor.gbapal");
 static const u32 sGenderIcons_Gfx[]           = INCBIN_U32("graphics/pokemon_storage/swsh/gender_icons.4bpp.smol");
+static const u16 sMarkings_Pal[]              = INCBIN_U16("graphics/pokemon_storage/swsh/markings.gbapal");
+static const u32 sMarkingsMenu_Gfx[]          = INCBIN_U32("graphics/pokemon_storage/swsh/markings_menu.4bpp.smol");
+static const u32 sMessageWindow_Gfx[]         = INCBIN_U32("graphics/pokemon_storage/swsh/message_window.4bpp.smol");
 static const u32 sShinyIcon_Gfx[]             = INCBIN_U32("graphics/pokemon_storage/swsh/shiny_icon.4bpp.smol");
 static const u32 sStatLabels_Gfx[]            = INCBIN_U32("graphics/pokemon_storage/swsh/stat_labels.4bpp.smol");
 static const ALIGNED(4) u8 sTypeIcons_Gfx[]   = INCBIN_U8("graphics/pokemon_storage/swsh/type_icons.4bpp");
 static const u16 sTypeIcons_Pal[]             = INCBIN_U16("graphics/pokemon_storage/swsh/type_icons.gbapal");
-static const u32 sMarkingsMenu_Gfx[]          = INCBIN_U32("graphics/pokemon_storage/swsh/markings_menu.4bpp.smol");
-static const u16 sMarkings_Pal[]              = INCBIN_U16("graphics/pokemon_storage/swsh/markings.gbapal");
 
 static const u32 sItemInfoFrame_Gfx[]         = INCBIN_U32("graphics/pokemon_storage/swsh/item_info_frame.4bpp");
 
@@ -152,9 +153,9 @@ static const u32 sWallpaperTiles_Fairy[]      = INCBIN_U32("graphics/pokemon_sto
 static const u32 sWallpaperTilemap_Fairy[]    = INCBIN_U32("graphics/pokemon_storage/swsh/wallpapers/fairy.bin.smolTM");
 static const u16 sWallpaperPalette_Fairy[]    = INCBIN_U16("graphics/pokemon_storage/swsh/wallpapers/fairy.gbapal");
 
-static const u32 sWallpaperTiles_Stellar[]      = INCBIN_U32("graphics/pokemon_storage/swsh/wallpapers/stellar.4bpp.smol");
-static const u32 sWallpaperTilemap_Stellar[]    = INCBIN_U32("graphics/pokemon_storage/swsh/wallpapers/stellar.bin.smolTM");
-static const u16 sWallpaperPalette_Stellar[]    = INCBIN_U16("graphics/pokemon_storage/swsh/wallpapers/stellar.gbapal");
+static const u32 sWallpaperTiles_Stellar[]    = INCBIN_U32("graphics/pokemon_storage/swsh/wallpapers/stellar.4bpp.smol");
+static const u32 sWallpaperTilemap_Stellar[]  = INCBIN_U32("graphics/pokemon_storage/swsh/wallpapers/stellar.bin.smolTM");
+static const u16 sWallpaperPalette_Stellar[]  = INCBIN_U16("graphics/pokemon_storage/swsh/wallpapers/stellar.gbapal");
 
 #define WALLPAPER_ENTRY(name) {sWallpaperTiles_##name, sWallpaperTilemap_##name, sWallpaperPalette_##name}
 
@@ -257,24 +258,24 @@ static const u8 *const sMenuTexts[] =
 
 static const struct StorageMessage sMessages[] =
 {
-    [MSG_BOX_IS_FULL]          = {COMPOUND_STRING("The BOX is full."),           MSG_VAR_NONE},
-    [MSG_RELEASE_POKE]         = {COMPOUND_STRING("Release this POKéMON?"),      MSG_VAR_NONE},
+    [MSG_BOX_IS_FULL]          = {COMPOUND_STRING("The box is full."),           MSG_VAR_NONE},
+    [MSG_RELEASE_POKE]         = {COMPOUND_STRING("Release this Pokémon?"),      MSG_VAR_NONE},
     [MSG_WAS_RELEASED]         = {COMPOUND_STRING("{DYNAMIC 0} was released."),  MSG_VAR_RELEASE_MON_1},
     [MSG_BYE_BYE]              = {COMPOUND_STRING("Bye-bye, {DYNAMIC 0}!"),      MSG_VAR_RELEASE_MON_3},
-    [MSG_LAST_POKE]            = {COMPOUND_STRING("That's your last POKéMON!"),  MSG_VAR_NONE},
+    [MSG_LAST_POKE]            = {COMPOUND_STRING("That's your last Pokémon!"),  MSG_VAR_NONE},
     [MSG_PARTY_FULL]           = {gText_YourPartysFull,                          MSG_VAR_NONE},
-    [MSG_HOLDING_POKE]         = {COMPOUND_STRING("You're holding a POKéMON!"),  MSG_VAR_NONE},
+    [MSG_HOLDING_POKE]         = {COMPOUND_STRING("You're holding a Pokémon!"),  MSG_VAR_NONE},
     [MSG_WHICH_ONE_WILL_TAKE]  = {COMPOUND_STRING("Which one will you take?"),   MSG_VAR_NONE},
-    [MSG_CANT_RELEASE_EGG]     = {COMPOUND_STRING("You can't release an EGG."),  MSG_VAR_NONE},
-    [MSG_CONTINUE_BOX]         = {COMPOUND_STRING("Continue BOX operations?"),   MSG_VAR_NONE},
+    [MSG_CANT_RELEASE_EGG]     = {COMPOUND_STRING("You can't release an egg."),  MSG_VAR_NONE},
+    [MSG_CONTINUE_BOX]         = {COMPOUND_STRING("Continue P.C. operations?"),  MSG_VAR_NONE},
     [MSG_CAME_BACK]            = {COMPOUND_STRING("{DYNAMIC 0} came back!"),     MSG_VAR_MON_NAME_1},
     [MSG_WORRIED]              = {COMPOUND_STRING("Was it worried about you?"),  MSG_VAR_NONE},
     [MSG_SURPRISE]             = {COMPOUND_STRING("… … … … !"),                  MSG_VAR_NONE},
-    [MSG_PLEASE_REMOVE_MAIL]   = {COMPOUND_STRING("Please remove the MAIL."),    MSG_VAR_NONE},
-    [MSG_PLACED_IN_BAG]        = {COMPOUND_STRING("Placed item in the BAG."),    MSG_VAR_ITEM_NAME},
-    [MSG_BAG_FULL]             = {COMPOUND_STRING("The BAG is full."),           MSG_VAR_NONE},
-    [MSG_PUT_IN_BAG]           = {COMPOUND_STRING("Put this item in the BAG?"),  MSG_VAR_NONE},
-    [MSG_CANT_STORE_MAIL]      = {COMPOUND_STRING("MAIL can't be stored!"),      MSG_VAR_NONE},
+    [MSG_PLEASE_REMOVE_MAIL]   = {COMPOUND_STRING("Please remove the mail."),    MSG_VAR_NONE},
+    [MSG_PLACED_IN_BAG]        = {COMPOUND_STRING("Placed item in the bag."),    MSG_VAR_ITEM_NAME},
+    [MSG_BAG_FULL]             = {COMPOUND_STRING("The bag is full."),           MSG_VAR_NONE},
+    [MSG_PUT_IN_BAG]           = {COMPOUND_STRING("Put this item in the bag?"),  MSG_VAR_NONE},
+    [MSG_CANT_STORE_MAIL]      = {COMPOUND_STRING("Mail can't be stored!"),      MSG_VAR_NONE},
 };
 
 // ============================================================================
@@ -318,9 +319,9 @@ static const struct WindowTemplate sWindowTemplates[] =
 {
     [WIN_MESSAGE] = {
         .bg = 0,
-        .tilemapLeft = 11,
+        .tilemapLeft = 9,
         .tilemapTop = 17,
-        .width = 18,
+        .width = 20,
         .height = 2,
         .paletteNum = 15,
         .baseBlock = 44,
@@ -449,7 +450,8 @@ static const u8 sTextColors[][3] =
 {
     {1, 2, 3}, // Standard menus, mon info (stats, ability, item)
     {4, 2, 5}, // Mon info (nickname and level) (grey BG)
-    {0, 4, 7}, // Choose box menu
+    {0, 4, 7}, // Choose box menu - actually uses PALTAG_MISC_3 and not bg pal 15
+    {0, 1, 6}, // Main message window
 };
 
 
@@ -740,7 +742,7 @@ static const struct SpriteTemplate sSpriteTemplate_BoxTitleArrow =
 
 static const u16 sUnusedColor = RGB(26, 29, 8);
 
-#define BOX_TITLE_SHADOW_HOVER  RGB(7, 7, 7)
+#define BOX_TITLE_SHADOW_HOVER  RGB(12, 12, 12)
 #define BOX_TITLE_TEXT_HOVER    RGB_WHITE
 #define BOX_TITLE_FRAME_HOVER   RGB_BLACK
 #define BOX_TITLE_SHADOW_MAIN   RGB(26, 26, 25)
@@ -1268,6 +1270,63 @@ static const struct SpriteTemplate sSpriteTemplate_MarkingsMenu_Cursor =
     .paletteTag = PALTAG_MISC_3,
     .oam = &sOamData_MarkingsMenu_Cursor,
     .anims = sAnims_MarkingsMenu_Cursor,
+};
+
+// ============================================================================
+// Message window sprites
+// ============================================================================
+
+static const struct OamData sOamData_MessageWindow =
+{
+    .y = 0,
+    .affineMode = ST_OAM_AFFINE_OFF,
+    .objMode = ST_OAM_OBJ_NORMAL,
+    .mosaic = FALSE,
+    .bpp = ST_OAM_4BPP,
+    .size = SPRITE_SIZE(32x32),
+    .x = 0,
+    .matrixNum = 0,
+    .shape = SPRITE_SHAPE(32x32),
+    .tileNum = 0,
+    .priority = 1,
+    .paletteNum = 0,
+    .affineParam = 0,
+};
+
+static const union AnimCmd sSpriteAnim_MessageWindow_0[] = {
+    ANIMCMD_FRAME(0, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+static const union AnimCmd sSpriteAnim_MessageWindow_1[] = {
+    ANIMCMD_FRAME(16, 0, FALSE, FALSE),
+    ANIMCMD_END
+};
+static const union AnimCmd sSpriteAnim_MessageWindow_2[] = {
+    ANIMCMD_FRAME(0, 0, TRUE, TRUE),
+    ANIMCMD_END
+};
+
+static const union AnimCmd *const sSpriteAnimTable_MessageWindow[] = {
+    sSpriteAnim_MessageWindow_0,
+    sSpriteAnim_MessageWindow_1,
+    sSpriteAnim_MessageWindow_2,
+};
+
+static const u8 sMessageWindowAnims[6] = {0, 1, 1, 1, 1, 2};
+
+static const struct CompressedSpriteSheet sSpriteSheet_MessageWindow =
+{
+    .data = sMessageWindow_Gfx,
+    .size = (32 * 32 * 2) / 2,
+    .tag = GFXTAG_MESSAGE_WINDOW,
+};
+
+static const struct SpriteTemplate sSpriteTemplate_MessageWindow =
+{
+    .tileTag = GFXTAG_MESSAGE_WINDOW,
+    .paletteTag = PALTAG_MISC_3,
+    .oam = &sOamData_MessageWindow,
+    .anims = sSpriteAnimTable_MessageWindow,
 };
 
 // ============================================================================
