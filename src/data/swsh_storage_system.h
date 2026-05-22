@@ -523,57 +523,20 @@ static const struct OamData sOamData_BoxSelection =
 static const struct CompressedSpriteSheet sSpriteSheet_BoxSelection =
 {
     .data = sBoxSelection_Gfx,
-    .size = (32 * 32 * 2) / 2,
+    .size = (32 * 32) / 2,
     .tag = GFXTAG_BOX_SELECTION,
 };
-
-static const union AnimCmd sAnim_BoxSelection_Normal[] =
-{
-    ANIMCMD_FRAME(0, 5),
-    ANIMCMD_END
-};
-
-static const union AnimCmd sAnim_BoxSelection_Hover[] =
-{
-    ANIMCMD_FRAME(16, 5),
-    ANIMCMD_END
-};
-
-static const union AnimCmd *const sAnims_BoxSelection[] =
-{
-    sAnim_BoxSelection_Normal,
-    sAnim_BoxSelection_Hover
-};
-
     
 static const struct SpriteTemplate sSpriteTemplate_BoxSelection =
 {
     .tileTag = GFXTAG_BOX_SELECTION,
     .paletteTag = PALTAG_MISC_3,
     .oam = &sOamData_BoxSelection,
-    .anims = sAnims_BoxSelection,
 };
 
 // ============================================================================
-// Box Selection Text Overlay Sprite (loaded dynamically like BOX_TITLE)
+// Box Selection Mon Count Sprite (loaded dynamically)
 // ============================================================================
-
-static const struct OamData sOamData_BoxSelection_BoxName =
-{
-    .y = 0,
-    .affineMode = ST_OAM_AFFINE_OFF,
-    .objMode = ST_OAM_OBJ_NORMAL,
-    .mosaic = FALSE,
-    .bpp = ST_OAM_4BPP,
-    .size = SPRITE_SIZE(32x16),
-    .x = 0,
-    .matrixNum = 0,
-    .shape = SPRITE_SHAPE(32x16),
-    .tileNum = 0,
-    .priority = 2,
-    .paletteNum = 0,
-    .affineParam = 0,
-};
 
 static const struct OamData sOamData_BoxSelection_MonCount =
 {
@@ -590,32 +553,6 @@ static const struct OamData sOamData_BoxSelection_MonCount =
     .priority = 1,
     .paletteNum = 0,
     .affineParam = 0,
-};
-
-static const union AnimCmd sAnim_BoxSelection_BoxName_Left[] =
-{
-    ANIMCMD_FRAME(0, 5),
-    ANIMCMD_END
-};
-
-static const union AnimCmd sAnim_BoxSelection_BoxName_Right[] =
-{
-    ANIMCMD_FRAME(8, 5),
-    ANIMCMD_END
-};
-
-static const union AnimCmd *const sAnims_BoxSelection_BoxName[] =
-{
-    sAnim_BoxSelection_BoxName_Left,
-    sAnim_BoxSelection_BoxName_Right
-};
-
-static const struct SpriteTemplate sSpriteTemplate_BoxSelection_BoxName =
-{
-    .tileTag = GFXTAG_BOX_SELECTION_BOX_NAME,
-    .paletteTag = PALTAG_MISC_1,
-    .oam = &sOamData_BoxSelection_BoxName,
-    .anims = sAnims_BoxSelection_BoxName,
 };
 
 static const struct SpriteTemplate sSpriteTemplate_BoxSelection_MonCount =
