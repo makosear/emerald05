@@ -185,67 +185,63 @@ static const struct Wallpaper sSwShWallpapers[] =
 // Text Strings
 // ============================================================================
 
-static const u8 gText_JustOnePkmn[]   = _("There is just one POKéMON with you.");
+static const u8 gText_JustOnePkmn[]   = _("There is just one Pokémon with you.");
 static const u8 gText_PartyFull[]     = _("Your party is full!");
-static const u8 gText_Box[]           = _("BOX");
-static const u8 sText_OutOf30[]       = _("/30");
 static const u8 sText_Lv[]            = _("Lv");
-
-static const u8 gText_PkmnIsSelected[] = _("{DYNAMIC 0} is selected.");
-static const u8 gPCText_Give[]         = _("GIVE");
+static const u8 gPCText_Give[]        = _("Give");
 
 struct {
     const u8 *text;
     const u8 *desc;
 } static const sMainMenuTexts[OPTIONS_COUNT] =
 {
-    [OPTION_WITHDRAW]   = {COMPOUND_STRING("WITHDRAW POKéMON"), COMPOUND_STRING("Move POKéMON stored in BOXES to\nyour party.")},
-    [OPTION_DEPOSIT]    = {COMPOUND_STRING("DEPOSIT POKéMON"),  COMPOUND_STRING("Store POKéMON in your party in BOXES.")},
-    [OPTION_MOVE_MONS]  = {COMPOUND_STRING("MOVE POKéMON"),     COMPOUND_STRING("Organize the POKéMON in BOXES and\nin your party.")},
-    [OPTION_MOVE_ITEMS] = {COMPOUND_STRING("MOVE ITEMS"),       COMPOUND_STRING("Move items held by any POKéMON\nin a BOX or your party.")},
-    [OPTION_EXIT]       = {COMPOUND_STRING("SEE YA!"),          COMPOUND_STRING("Return to the previous menu.")}
+    [OPTION_WITHDRAW]   = {COMPOUND_STRING("Withdraw Pokémon"), COMPOUND_STRING("Move Pokémon stored in boxes to\nyour party.")},
+    [OPTION_DEPOSIT]    = {COMPOUND_STRING("Deposit Pokémon"),  COMPOUND_STRING("Store Pokémon in your party in boxes.")},
+    [OPTION_MOVE_MONS]  = {COMPOUND_STRING("Move Pokémon"),     COMPOUND_STRING("Organize the Pokémon in boxes and\nin your party.")},
+    [OPTION_MOVE_ITEMS] = {COMPOUND_STRING("Move Items"),       COMPOUND_STRING("Move items held by any Pokémon\nin a box or your party.")},
+    [OPTION_EXIT]       = {COMPOUND_STRING("See ya!"),          COMPOUND_STRING("Return to the previous menu.")}
 };
 
 static const u8 *const sMenuTexts[] =
 {
-    [MENU_CANCEL]     = COMPOUND_STRING("CANCEL"),
-    [MENU_STORE]      = COMPOUND_STRING("STORE"),
-    [MENU_WITHDRAW]   = COMPOUND_STRING("WITHDRAW"),
-    [MENU_MOVE]       = COMPOUND_STRING("MOVE"),
-    [MENU_SHIFT]      = COMPOUND_STRING("SHIFT"),
-    [MENU_PLACE]      = COMPOUND_STRING("PLACE"),
-    [MENU_SUMMARY]    = COMPOUND_STRING("SUMMARY"),
-    [MENU_RELEASE]    = COMPOUND_STRING("RELEASE"),
-    [MENU_MARK]       = COMPOUND_STRING("MARK"),
-    [MENU_JUMP]       = COMPOUND_STRING("JUMP"),
-    [MENU_WALLPAPER]  = COMPOUND_STRING("WALLPAPER"),
-    [MENU_NAME]       = COMPOUND_STRING("NAME"),
-    [MENU_TAKE]       = COMPOUND_STRING("TAKE"),
+    [MENU_CANCEL]     = COMPOUND_STRING("Cancel"),
+    [MENU_STORE]      = COMPOUND_STRING("Store"),
+    [MENU_WITHDRAW]   = COMPOUND_STRING("Withdraw"),
+    [MENU_MOVE]       = COMPOUND_STRING("Move"),
+    [MENU_SHIFT]      = COMPOUND_STRING("Shift"),
+    [MENU_PLACE]      = COMPOUND_STRING("Place"),
+    [MENU_SUMMARY]    = COMPOUND_STRING("Summary"),
+    [MENU_RELEASE]    = COMPOUND_STRING("Release"),
+    [MENU_MARK]       = COMPOUND_STRING("Mark"),
+    [MENU_JUMP]       = COMPOUND_STRING("Jump"),
+    [MENU_WALLPAPER]  = COMPOUND_STRING("Wallpaper"),
+    [MENU_NAME]       = COMPOUND_STRING("Name"),
+    [MENU_TAKE]       = COMPOUND_STRING("Take"),
     [MENU_GIVE]       = gPCText_Give,
     [MENU_GIVE_2]     = gPCText_Give,
-    [MENU_SWITCH]     = COMPOUND_STRING("SWITCH"),
-    [MENU_BAG]        = COMPOUND_STRING("BAG"),
-    [MENU_SELECT]     = COMPOUND_STRING("SELECT"),
-    [MENU_BASE]       = COMPOUND_STRING("DEFAULT"),
-    [MENU_NORMAL]     = COMPOUND_STRING("NORMAL"),
-    [MENU_FIGHTING]   = COMPOUND_STRING("FIGHTING"),
-    [MENU_FLYING]     = COMPOUND_STRING("FLYING"),
-    [MENU_POISON]     = COMPOUND_STRING("POISON"),
-    [MENU_GROUND]     = COMPOUND_STRING("GROUND"),
-    [MENU_ROCK]       = COMPOUND_STRING("ROCK"),
-    [MENU_BUG]        = COMPOUND_STRING("BUG"),
-    [MENU_GHOST]      = COMPOUND_STRING("GHOST"),
-    [MENU_STEEL]      = COMPOUND_STRING("STEEL"),
-    [MENU_FIRE]       = COMPOUND_STRING("FIRE"),
-    [MENU_WATER]      = COMPOUND_STRING("WATER"),
-    [MENU_GRASS]      = COMPOUND_STRING("GRASS"),
-    [MENU_ELECTRIC]   = COMPOUND_STRING("ELECTRIC"),
-    [MENU_PSYCHIC]    = COMPOUND_STRING("PSYCHIC"),
-    [MENU_ICE]        = COMPOUND_STRING("ICE"),
-    [MENU_DRAGON]     = COMPOUND_STRING("DRAGON"),
-    [MENU_DARK]       = COMPOUND_STRING("DARK"),
-    [MENU_FAIRY]      = COMPOUND_STRING("FAIRY"),
-    [MENU_STELLAR]    = COMPOUND_STRING("STELLAR"),
+    [MENU_SWITCH]     = COMPOUND_STRING("Switch"),
+    [MENU_BAG]        = COMPOUND_STRING("Bag"),
+    [MENU_SELECT]     = COMPOUND_STRING("Select"),
+    [MENU_BASE]       = COMPOUND_STRING("Default"),
+    [MENU_NORMAL]     = COMPOUND_STRING("Normal"),
+    [MENU_FIGHTING]   = COMPOUND_STRING("Fighting"),
+    [MENU_FLYING]     = COMPOUND_STRING("Flying"),
+    [MENU_POISON]     = COMPOUND_STRING("Poison"),
+    [MENU_GROUND]     = COMPOUND_STRING("Ground"),
+    [MENU_ROCK]       = COMPOUND_STRING("Rock"),
+    [MENU_BUG]        = COMPOUND_STRING("Bug"),
+    [MENU_GHOST]      = COMPOUND_STRING("Ghost"),
+    [MENU_STEEL]      = COMPOUND_STRING("Steel"),
+    [MENU_FIRE]       = COMPOUND_STRING("Fire"),
+    [MENU_WATER]      = COMPOUND_STRING("Water"),
+    [MENU_GRASS]      = COMPOUND_STRING("Grass"),
+    [MENU_ELECTRIC]   = COMPOUND_STRING("Electric"),
+    [MENU_PSYCHIC]    = COMPOUND_STRING("Psychic"),
+    [MENU_ICE]        = COMPOUND_STRING("Ice"),
+    [MENU_DRAGON]     = COMPOUND_STRING("Dragon"),
+    [MENU_DARK]       = COMPOUND_STRING("Dark"),
+    [MENU_FAIRY]      = COMPOUND_STRING("Fairy"),
+    [MENU_STELLAR]    = COMPOUND_STRING("Stellar"),
     [MENU_COUNT]      = gText_EmptyString2,
 };
 

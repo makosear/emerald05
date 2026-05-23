@@ -730,7 +730,6 @@ static bool8 IsItemIconAnimActive(void);
 static bool8 IsMovingItem(void);
 static const u8 *GetMovingItemName(void);
 static u16 GetMovingItemId(void);
-static void PrintItemDescription(void);
 static void SetItemIconCallback(u8, u8, u8, u8);
 static void SpriteCB_ItemIcon_SetPosToCursor(struct Sprite *);
 static void SpriteCB_ItemIcon_WaitAnim(struct Sprite *);
@@ -1139,7 +1138,7 @@ static s16 UNUSED StorageSystemGetNextMonIndex(struct BoxPokemon *box, s8 startI
 //------------------------------------------------------------------------------
 
 // First tile index (local to char block 2) of the 4x4 box icon tile block
-#define CHOOSE_BOX_BG_TILE_BASE  50
+#define CHOOSE_BOX_BG_TILE_BASE  47
 // Top-left tilemap column/row of the choose-box grid (pixels 88,64 / 8)
 #define CHOOSE_BOX_GRID_TILE_COL 9
 #define CHOOSE_BOX_GRID_TILE_ROW 6
@@ -8925,19 +8924,6 @@ static void SetItemIconActive(u8 id, bool8 active)
 
     sStorage->itemIcons[id].active = active;
     sStorage->itemIcons[id].sprite->invisible = (active == FALSE);
-}
-
-static void PrintItemDescription(void)
-{
-    const u8 *description;
-
-    if (IsMovingItem())
-        description = GetItemDescription(sStorage->movingItemId);
-    else
-        description = GetItemDescription(sStorage->displayMon.heldItem);
-
-    FillWindowPixelBuffer(WIN_ITEM_DESC, PIXEL_FILL(1));
-    AddTextPrinterParameterized4(WIN_ITEM_DESC, FONT_NORMAL, 4, 0, 0, 1, sTextColors[0], 0, description);
 }
 
 static void SpriteCB_ItemIcon_WaitAnim(struct Sprite *sprite)
