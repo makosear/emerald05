@@ -762,9 +762,9 @@ static const struct WindowTemplate sPageSkillsTemplate[] =
     [PSS_DATA_WINDOW_SKILLS_ABILITY] = {
         .bg = 0,
         .tilemapLeft = 1,
-        .tilemapTop = 11, // Shifted up to cover both possible positions
+        .tilemapTop = SWSH_SUMMARY_SHOW_DYNAMAX_LEVEL ? 13 : 11,
         .width = 18,
-        .height = 7, // Increased height to cover the shift
+        .height = 7,
         .paletteNum = 2,
         .baseBlock = 277,
     },
@@ -4244,7 +4244,7 @@ static void PrintMonNature(void)
 static void PrintMonAbilityName(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    u8 y = SWSH_SUMMARY_SHOW_DYNAMAX_LEVEL ? 22 : 2;
+    u8 y = SWSH_SUMMARY_SHOW_DYNAMAX_LEVEL ? 3 : 1;
 
     PrintTextOnWindow(AddWindowFromTemplateList(sPageSkillsTemplate, PSS_DATA_WINDOW_SKILLS_ABILITY), gAbilitiesInfo[ability].name, 48, y, 0, 0);
 }
@@ -4252,7 +4252,7 @@ static void PrintMonAbilityName(void)
 static void PrintMonAbilityDescription(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    u8 y = SWSH_SUMMARY_SHOW_DYNAMAX_LEVEL ? 40 : 20;
+    u8 y = SWSH_SUMMARY_SHOW_DYNAMAX_LEVEL ? 22 : 20;
 
     PrintTextOnWindow(AddWindowFromTemplateList(sPageSkillsTemplate, PSS_DATA_WINDOW_SKILLS_ABILITY), gAbilitiesInfo[ability].description, 0, y, 0, 0);
 }
@@ -5597,9 +5597,9 @@ static void PrintMovePowerAndAccuracy(enum Move moveIndex)
 #define TILEMAP_APPEAL_START  (15 * 32 + 5)
 #define TILEMAP_JAM_START     (18 * 32 + 5)
 #define TILE_APPEAL_FILLED    ((1 << 12) | 49)
-#define TILE_APPEAL_EMPTY     ((1 << 12) | 243)
+#define TILE_APPEAL_EMPTY     ((1 << 12) | 234)
 #define TILE_JAM_FILLED       ((1 << 12) | 50)
-#define TILE_JAM_EMPTY        ((1 << 12) | 248)
+#define TILE_JAM_EMPTY        ((1 << 12) | 239)
 
 static void HandleAppealJamTilemap(enum Move move)
 {
