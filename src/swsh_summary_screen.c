@@ -4689,7 +4689,7 @@ static void PrintStatLabels(void)
     {
         const u8 *color;
 
-        if (natureUpStat == natureDownStat)
+        if (!SWSH_SUMMARY_NATURE_COLORS || natureUpStat == natureDownStat)
             color = sTextNatureNeutral;
         else if (sStatLabels[i].statIndex == natureUpStat)
             color = sTextNatureUp;
