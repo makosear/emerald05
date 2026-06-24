@@ -664,7 +664,7 @@
 #define FLAG_HIDDEN_ITEM_ROUTE_123_RARE_CANDY                (FLAG_HIDDEN_ITEMS_START + 0x6E)
 #define FLAG_HIDDEN_ITEM_ROUTE_105_BIG_PEARL                 (FLAG_HIDDEN_ITEMS_START + 0x6F)
 
-#define FLAG_UNUSED_0x264  0x264 // Unused Flag
+#define FLAG_EXP_SHARE_ENABLED  0x264 // Exp Share enabled flag
 #define FLAG_UNUSED_0x265  0x265 // Unused Flag
 #define FLAG_UNUSED_0x266  0x266 // Unused Flag
 #define FLAG_UNUSED_0x267  0x267 // Unused Flag
@@ -1769,7 +1769,7 @@
 #define FLAG_HIDE_SAPPHIRE                                 0
 #define FLAG_HIDE_DOTTED_HOLE_SCIENTIST                    0
 #define FLAG_HIDE_THREE_ISLAND_LONE_BIKER                  0
-#define FLAG_HIDE_PEWTER_CITRUNNING_SHOES_GUY            0
+#define FLAG_HIDE_PEWTER_CITY_RUNNING_SHOES_GUY            0
 #define FLAG_HIDE_LOST_CAVE_SELPHY                         0
 #define FLAG_HIDE_RESORT_GORGEOUS_SELPHY                   0
 #define FLAG_HIDE_RESORT_GORGEOUS_INSIDE_SELPHY            0
