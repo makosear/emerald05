@@ -1769,7 +1769,7 @@
 #define FLAG_HIDE_SAPPHIRE                                 0
 #define FLAG_HIDE_DOTTED_HOLE_SCIENTIST                    0
 #define FLAG_HIDE_THREE_ISLAND_LONE_BIKER                  0
-#define FLAG_HIDE_PEWTER_CITY_RUNNING_SHOES_GUY            0
+#define FLAG_HIDE_PEWTER_CITRUNNING_SHOES_GUY            0
 #define FLAG_HIDE_LOST_CAVE_SELPHY                         0
 #define FLAG_HIDE_RESORT_GORGEOUS_SELPHY                   0
 #define FLAG_HIDE_RESORT_GORGEOUS_INSIDE_SELPHY            0
