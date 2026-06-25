@@ -1152,10 +1152,14 @@ enum NationalDexOrder
     F(GEODUDE) \
     F(GRAVELER) \
     F(GOLEM) \
+    F(ONIX) \
+    F(STEELIX) \
     F(NOSEPASS) \
     HOENN_DEX_IF(P_GEN_4_CROSS_EVOS, F(PROBOPASS)) \
     F(SKITTY) \
     F(DELCATTY) \
+    F(CLEFFA) \
+    F(CLEFAIRY) \
     F(ZUBAT) \
     F(GOLBAT) \
     F(CROBAT) \
@@ -1171,6 +1175,8 @@ enum NationalDexOrder
     F(MACHAMP) \
     F(MEDITITE) \
     F(MEDICHAM) \
+    F(RIOLU) \
+    F(LUCARIO) \
     F(ELECTRIKE) \
     F(MANECTRIC) \
     F(PLUSLE) \
@@ -1202,6 +1208,8 @@ enum NationalDexOrder
     F(SLUGMA) \
     F(MAGCARGO) \
     F(TORKOAL) \
+    F(SALANDIT) \
+    F(SALAZZLE) \
     F(GRIMER) \
     F(MUK) \
     F(KOFFING) \
@@ -1211,6 +1219,8 @@ enum NationalDexOrder
     F(SANDSHREW) \
     F(SANDSLASH) \
     F(SPINDA) \
+    F(GLIGAR) \
+    F(GLISCOR) \
     F(SKARMORY) \
     F(TRAPINCH) \
     F(VIBRAVA) \
@@ -1247,6 +1257,8 @@ enum NationalDexOrder
     F(DUSKULL) \
     F(DUSCLOPS) \
     HOENN_DEX_IF(P_GEN_4_CROSS_EVOS, F(DUSKNOIR)) \
+    F(DRIFLOON) \
+    F(DRIFBLIM) \
     F(TROPIUS) \
     HOENN_DEX_IF(P_GEN_4_CROSS_EVOS, F(CHINGLING)) \
     F(CHIMECHO) \
@@ -1258,6 +1270,15 @@ enum NationalDexOrder
     F(RAICHU) \
     F(PSYDUCK) \
     F(GOLDUCK) \
+    F(EEVEE) \
+    F(VAPOREON) \
+    F(JOLTEON) \
+    F(FLAREON) \
+    F(ESPEON) \
+    F(UMBREON) \
+    F(LEAFEON) \
+    F(GLACEON) \
+    F(SYLVEON) \
     F(WYNAUT) \
     F(WOBBUFFET) \
     F(NATU) \
@@ -1271,6 +1292,14 @@ enum NationalDexOrder
     F(RHYHORN) \
     F(RHYDON) \
     HOENN_DEX_IF(P_GEN_4_CROSS_EVOS, F(RHYPERIOR)) \
+    F(ELEKID) \
+    F(ELECTABUZZ) \
+    F(ELECTIVIRE) \
+    F(MAGBY) \
+    F(MAGMAR) \
+    F(MAGMORTAR) \
+    F(SNEASEL) \
+    F(WEAVILE) \
     F(SNORUNT) \
     F(GLALIE) \
     HOENN_DEX_IF(P_GEN_4_CROSS_EVOS, F(FROSLASS)) \
@@ -1285,10 +1314,17 @@ enum NationalDexOrder
     HOENN_DEX_IF(P_GALARIAN_FORMS, F(CURSOLA)) \
     F(CHINCHOU) \
     F(LANTURN) \
+    F(MANTYKE) \
+    F(MANTINE) \
     F(LUVDISC) \
+    F(MAREANIE) \
+    F(TOXAPEX) \
     F(HORSEA) \
     F(SEADRA) \
     F(KINGDRA) \
+    F(GOOMY) \
+    F(SLIGGOO) \
+    F(GOODRA) \
     F(BAGON) \
     F(SHELGON) \
     F(SALAMENCE) \

@@ -4648,21 +4648,13 @@ Double Battle: No
 AI: Basic Trainer
 Mugshot: Green
 
-Dusclops
+Drifblim
 Level: 48
 IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Shadow Punch
-- Confuse Ray
-- Curse
-- Protect
 
-Banette
+Froslass
 Level: 49
 IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Shadow Ball
-- Grudge
-- Will O Wisp
-- Feint Attack
 
 Sableye
 Level: 50
@@ -4680,7 +4672,7 @@ IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
 - Thunderbolt
 - Facade
 
-Dusclops @ Sitrus Berry
+Dusknoir @ Sitrus Berry
 Level: 51
 IVs: 31 HP / 31 Atk / 31 Def / 31 SpA / 31 SpD / 31 Spe
 - Shadow Ball
@@ -4699,29 +4691,17 @@ Double Battle: No
 AI: Basic Trainer
 Mugshot: Pink
 
-Sealeo
+Froslass
 Level: 50
 IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Encore
-- Body Slam
-- Hail
-- Ice Ball
 
-Glalie
+Glaceon
 Level: 50
 IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Light Screen
-- Crunch
-- Icy Wind
-- Ice Beam
 
-Sealeo
+Weavile
 Level: 52
 IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Attract
-- Double Edge
-- Hail
-- Blizzard
 
 Glalie
 Level: 52
@@ -4750,13 +4730,9 @@ Double Battle: No
 AI: Basic Trainer
 Mugshot: Blue
 
-Shelgon
+Sliggo
 Level: 52
 IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Rock Tomb
-- Dragon Claw
-- Protect
-- Double Edge
 
 Altaria
 Level: 54
@@ -4808,13 +4784,9 @@ IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
 - Rock Throw
 - Rock Tomb
 
-Geodude
+Onix
 Level: 12
 IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
-- Tackle
-- Defense Curl
-- Rock Throw
-- Rock Tomb
 
 Nosepass @ Oran Berry
 Level: 15
@@ -4876,13 +4848,13 @@ IVs: 24 HP / 24 Atk / 24 Def / 24 SpA / 24 SpD / 24 Spe
 - Self Destruct
 - Shock Wave
 
-Electrike
+Elekid
 Level: 20
 IVs: 24 HP / 24 Atk / 24 Def / 24 SpA / 24 SpD / 24 Spe
 - Shock Wave
-- Leer
 - Quick Attack
-- Howl
+- Thunder Wave
+- Swift
 
 Magneton
 Level: 22
@@ -4994,13 +4966,13 @@ Items: Hyper Potion / Hyper Potion
 Double Battle: No
 AI: Basic Trainer / Risky
 
-Swablu
+Gligar @ Oran Berry
 Level: 29
 IVs: 25 HP / 25 Atk / 25 Def / 25 SpA / 25 SpD / 25 Spe
-- Perish Song
-- Mirror Move
-- Safeguard
 - Aerial Ace
+- Quick Attack
+- Acrobatics
+- Sand Attack
 
 Tropius
 Level: 29
@@ -9496,13 +9468,13 @@ IVs: 18 HP / 18 Atk / 18 Def / 18 SpA / 18 SpD / 18 Spe
 - Tri Attack
 - Screech
 
-Gardevoir
+Gallade @ Black Belt
 Level: 45
 IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
-- Double Team
-- Calm Mind
-- Psychic
-- Future Sight
+- Psycho Cut
+- Close Combat
+- Slash
+- Swords Dance
 
 === TRAINER_BRENDAN_ROUTE_103_MUDKIP ===
 Name: BRENDAN
@@ -9516,6 +9488,7 @@ AI: Basic Trainer
 Treecko
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+- POUND
 
 === TRAINER_BRENDAN_ROUTE_110_MUDKIP ===
 Name: BRENDAN
@@ -9571,6 +9544,7 @@ AI: Check Bad Move / Try To Faint / Force Setup First Turn
 Torchic
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+- SCRATCH
 
 === TRAINER_BRENDAN_ROUTE_110_TREECKO ===
 Name: BRENDAN
@@ -9626,6 +9600,7 @@ AI: Basic Trainer
 Mudkip
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+- TACKLE
 
 === TRAINER_BRENDAN_ROUTE_110_TORCHIC ===
 Name: BRENDAN
@@ -9681,7 +9656,7 @@ AI: Basic Trainer
 Treecko
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
-- TACKLE
+- POUND
 
 === TRAINER_MAY_ROUTE_110_MUDKIP ===
 Name: MAY
@@ -9737,7 +9712,7 @@ AI: Basic Trainer
 Torchic
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
-- POUND
+- SCRATCH
 
 === TRAINER_MAY_ROUTE_110_TREECKO ===
 Name: MAY
@@ -9793,7 +9768,7 @@ AI: Basic Trainer
 Mudkip
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
-- SCRATCH
+- TACKLE
 
 === TRAINER_MAY_ROUTE_110_TORCHIC ===
 Name: MAY
