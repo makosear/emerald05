@@ -8,6 +8,7 @@
 #include "battle_factory.h"
 #include "bg.h"
 #include "swsh_summary_screen.h"
+#include "comfy_anim.h"
 #include "contest.h"
 #include "contest_effect.h"
 #include "data.h"
@@ -276,6 +277,8 @@ static EWRAM_DATA struct PokemonSummaryScreenData
 } *sMonSummaryScreen = NULL;
 
 static EWRAM_DATA u8 sMoveSlotToReplace = 0;
+static EWRAM_DATA u8 sHeldSlot = 0;
+static EWRAM_DATA u32 sHeldAnimId = 0;
 ALIGNED(4) static EWRAM_DATA u8 sAnimDelayTaskId = 0;
 static EWRAM_DATA u8 sStringVar5[8] = {0};
 
@@ -307,8 +310,11 @@ static bool8 HasMoreThanOneMove(void);
 static void ChangeSelectedMove(s16 *, s8, u8 *);
 static void CloseMoveSelectMode(u8);
 static void SwitchToMovePositionSwitchMode(u8);
-static void Task_HandleInput_MovePositionSwitch(u8);
+static void Task_HandleInput_MoveSwitch(u8);
 static void ExitMovePositionSwitchMode(u8, bool8);
+static void LiftMoveSlot(u8);
+static void DropMoveSlot(void);
+static void AnimateLiftedSlotToTarget(void);
 static void SwapMonMoves(struct Pokemon *, u8, u8);
 static void SwapBoxMonMoves(struct BoxPokemon *, u8, u8);
 static void Task_SetHandleReplaceMoveInput(u8);
@@ -408,8 +414,6 @@ static void CreateStatusSprite(void);
 static void CreateMoveCursorSprite(void);
 static void DestroyMoveCursorSprite(void);
 static void SpriteCB_MoveCursor(struct Sprite *);
-static void CreateMoveFrameSprite(void);
-static void DestroyMoveFrameSprite(void);
 static void CreateMoveSlotSprites(void);
 static void DestroyMoveSlotSprites(void);
 static void UpdateMoveSlotVisibility(void);
@@ -599,7 +603,7 @@ static const u32 sTeraTypes_Gfx[]                   = INCGFX_U32("graphics/summa
 // Share sDynamaxLevels_Pal
 static const u32 sDynamaxLevels_Gfx[]               = INCGFX_U32("graphics/summary_screen/swsh/dynamax_levels.png", ".4bpp.smol");
 static const u32 sMoveCursor_Gfx[]                  = INCGFX_U32("graphics/summary_screen/swsh/move_cursor.png", ".4bpp.smol");
-static const u32 sMoveFrame_Gfx[]                   = INCGFX_U32("graphics/summary_screen/swsh/move_frame.png", ".4bpp.smol");
+static const u32 sMoveSlot_Gfx[]                    = INCGFX_U32("graphics/summary_screen/swsh/move_slot.png", ".4bpp.smol");
 // Share sCategoryIcons_Pal
 static const u32 sCategoryIcons_Gfx[]               = INCGFX_U32("graphics/summary_screen/swsh/category_icons.png", ".4bpp.smol");
 static const u32 sPokerusCuredIcon_Gfx[]            = INCGFX_U32("graphics/summary_screen/swsh/pokerus_cured_icon.png", ".4bpp.smol");
@@ -608,7 +612,6 @@ static const u32 sShinyIcon_Gfx[]                   = INCGFX_U32("graphics/summa
 static const u32 sGenderIcons_Gfx[]                 = INCGFX_U32("graphics/summary_screen/swsh/gender_icons.png", ".4bpp.smol");
 static const u32 sFriendshipIcon_Gfx[]              = INCGFX_U32("graphics/summary_screen/swsh/heart.png", ".4bpp.smol");
 static const u32 sGigantamaxIcon_Gfx[]              = INCGFX_U32("graphics/summary_screen/swsh/gigantamax.png", ".4bpp.smol");
-static const u32 sMoveSlot_Gfx[]                    = INCGFX_U32("graphics/summary_screen/swsh/move_slot.png", ".4bpp.smol");
 #if SWSH_SUMMARY_SWSH_STATUS_ICONS == TRUE
 static const u32 sStatusGfx_Icons[]                 = INCGFX_U32("graphics/summary_screen/swsh/status_icons.png", ".4bpp.smol");
 static const u16 sStatusPal_Icons[]                 = INCGFX_U16("graphics/summary_screen/swsh/status_icons.png", ".gbapal");
@@ -800,15 +803,12 @@ static const struct WindowTemplate sPageMemoTemplate[] =
         .baseBlock = 331,
     },
 };
+// {bg, fg, shadow} entries indexing into BG palette 2
 static const u8 sTextColors[][3] =
 {
-    {0, 1, 2},
-    {0, 3, 4},
-    {0, 5, 6},
-    {0, 7, 8},
-    {0, 9, 10},
-    {0, 11, 12},
-    {0, 13, 14},
+    {0, 1, 2},   // [0] main: most page texts (species, OT, nature, ability, stats, etc.)
+    {0, 3, 4},   // [1] portrait text (nickname/level) + prompt texts
+    {0, 5, 6},   // [2] shiny dex number + "HM can't be forgotten" warning
 };
 
 static void (*const sTextPrinterFunctions[])(void) =
@@ -835,32 +835,31 @@ static void (*const sTextPrinterTasks[])(u8 taskId) =
     [PSS_PAGE_MEMO] = Task_PrintMemoPage,
 };
 
-#define TAG_MOVE_SELECTOR           30000
-#define TAG_MON_STATUS              30001
-#define TAG_MOVE_TYPES              30002
-#define TAG_MON_MARKINGS            30003
-#define TAG_MON_SHINY_ICON          30004
-#define TAG_MON_POKERUS_CURED_ICON  30005
-#define TAG_CATEGORY_ICONS          30006
-#define TAG_STAT_GRADES             30007
-#define TAG_FRIENDSHIP_ICON         30008
-#define TAG_GIGANTAMAX_ICON         30009
-#define TAG_TERA_TYPE               30010
-#define TAG_MON_SHADOW              30011
-#define TAG_INFO_PROMPT             30014
-#define TAG_GENDER_ICON             30015
-#define TAG_HELD_ITEM_ICON          30017
-#define TAG_LR_BUTTON               30018
-#define TAG_DYNAMAX_LEVELS          30021
-#define TAG_MOVE_SLOT_MAIN          30022
-#define TAG_MOVE_SLOT_FOCUS         30023
-#define TAG_MOVE_SLOT_0             30024
-#define TAG_MOVE_SLOT_1             30025
-#define TAG_MOVE_SLOT_2             30026
-#define TAG_MOVE_SLOT_3             30027
-#define TAG_MOVE_SLOT_4             30028
-#define TAG_MOVE_CURSOR             30029
-#define TAG_MOVE_FRAME              30030
+#define TAG_MON_STATUS          30001
+#define TAG_MOVE_TYPES          30002
+#define TAG_MON_MARKINGS        30003
+#define TAG_SHINY_ICON          30004
+#define TAG_POKERUS_CURED_ICON  30005
+#define TAG_CATEGORY_ICONS      30006
+#define TAG_STAT_GRADES         30007
+#define TAG_FRIENDSHIP_ICON     30008
+#define TAG_GIGANTAMAX_ICON     30009
+#define TAG_TERA_TYPE           30010
+#define TAG_MON_SHADOW          30011
+#define TAG_INFO_PROMPT         30014
+#define TAG_GENDER_ICON         30015
+#define TAG_HELD_ITEM_ICON      30017
+#define TAG_LR_BUTTON           30018
+#define TAG_DYNAMAX_LEVELS      30021
+#define TAG_MOVE_SLOT_MAIN      30022
+#define TAG_MOVE_SLOT_FOCUS     30023
+#define TAG_MOVE_SLOT_0         30024
+#define TAG_MOVE_SLOT_1         30025
+#define TAG_MOVE_SLOT_2         30026
+#define TAG_MOVE_SLOT_3         30027
+#define TAG_MOVE_SLOT_4         30028
+#define TAG_MOVE_CURSOR         30029
+
 
 enum SwShCategoryIcon
 {
@@ -1334,7 +1333,7 @@ static const struct OamData sOamData_MoveSlot =
     .matrixNum = 0,
     .size = SPRITE_SIZE(32x16),
     .tileNum = 0,
-    .priority = 2,
+    .priority = 1,
     .paletteNum = 0,
     .affineParam = 0,
 };
@@ -1381,8 +1380,15 @@ static const struct CompressedSpriteSheet sSpriteSheets_MoveSlot[MOVE_SLOT_COUNT
     { .data = sMoveSlot_Gfx, .size = MOVE_SLOT_GFX_SIZE, .tag = TAG_MOVE_SLOT_4 },
 };
 
-static const struct SpritePalette sSpritePal_MoveSlotMain  = { .data = sMoveSlot_Pals,      .tag = TAG_MOVE_SLOT_MAIN  };
-static const struct SpritePalette sSpritePal_MoveSlotFocus = { .data = &sMoveSlot_Pals[16], .tag = TAG_MOVE_SLOT_FOCUS };
+static const struct SpritePalette sSpritePal_MoveSlotMain  = {
+    .data = sMoveSlot_Pals,
+    .tag = TAG_MOVE_SLOT_MAIN
+};
+
+static const struct SpritePalette sSpritePal_MoveSlotFocus = {
+    .data = &sMoveSlot_Pals[16],
+    .tag = TAG_MOVE_SLOT_FOCUS
+};
 
 static const u16 sMoveSlotTileTags[MOVE_SLOT_COUNT] =
 {
@@ -1446,63 +1452,6 @@ static const struct SpriteTemplate sSpriteTemplate_MoveCursor =
     .paletteTag = TAG_DYNAMAX_LEVELS,
     .oam = &sOamData_MoveCursor,
     .anims = sAnims_MoveCursor,
-};
-
-static const struct OamData sOamData_MoveFrame =
-{
-    .y = 0,
-    .affineMode = ST_OAM_AFFINE_OFF,
-    .objMode = ST_OAM_OBJ_NORMAL,
-    .mosaic = FALSE,
-    .bpp = ST_OAM_4BPP,
-    .shape = SPRITE_SHAPE(16x32),
-    .x = 0,
-    .matrixNum = 0,
-    .size = SPRITE_SIZE(16x32),
-    .tileNum = 0,
-    .priority = 1,
-    .paletteNum = 0,
-    .affineParam = 0,
-};
-
-static const union AnimCmd sSpriteAnim_MoveFrame_0[] = {
-    ANIMCMD_FRAME(0, 0, FALSE, FALSE),
-    ANIMCMD_END
-};
-static const union AnimCmd sSpriteAnim_MoveFrame_1[] = {
-    ANIMCMD_FRAME(8, 0, FALSE, FALSE),
-    ANIMCMD_END
-};
-static const union AnimCmd sSpriteAnim_MoveFrame_2[] = {
-    ANIMCMD_FRAME(0, 0, TRUE, FALSE),
-    ANIMCMD_END
-};
-
-static const union AnimCmd *const sSpriteAnimTable_MoveFrame[] = {
-    sSpriteAnim_MoveFrame_0,
-    sSpriteAnim_MoveFrame_1,
-    sSpriteAnim_MoveFrame_2,
-};
-
-static const u8 sMoveFrameAnims[MOVE_FRAME_SPRITES_COUNT] = {
-    [0] = 0,
-    [1 ... 8] = 1,
-    [9] = 2
-};
-
-static const struct CompressedSpriteSheet sSpriteSheet_MoveFrame =
-{
-    .data = sMoveFrame_Gfx,
-    .size = (16 * 32 * 3) / 2,
-    .tag = TAG_MOVE_FRAME
-};
-
-static const struct SpriteTemplate sMoveFrameSpriteTemplate =
-{
-    .tileTag = TAG_MOVE_FRAME,
-    .paletteTag = TAG_DYNAMAX_LEVELS,
-    .oam = &sOamData_MoveFrame,
-    .anims = sSpriteAnimTable_MoveFrame,
 };
 
 // Shared palette for the move cursor/frame, ability box, and Dynamax box/level sprites
@@ -1785,12 +1734,12 @@ static const struct CompressedSpriteSheet sSpriteSheet_ShinyIcon =
 {
     .data = sShinyIcon_Gfx,
     .size = 8*8/2,
-    .tag = TAG_MON_SHINY_ICON
+    .tag = TAG_SHINY_ICON
 };
 
 static const struct SpriteTemplate sSpriteTemplate_ShinyIcon =
 {
-    .tileTag = TAG_MON_SHINY_ICON,
+    .tileTag = TAG_SHINY_ICON,
     .paletteTag = TAG_CATEGORY_ICONS,
     .oam = &sOamData_ShinyIcon,
 };
@@ -1847,12 +1796,12 @@ static const struct CompressedSpriteSheet sSpriteSheet_PokerusCuredIcon =
 {
     .data = sPokerusCuredIcon_Gfx,
     .size = 8*8,
-    .tag = TAG_MON_POKERUS_CURED_ICON
+    .tag = TAG_POKERUS_CURED_ICON
 };
 
 static const struct SpriteTemplate sSpriteTemplate_PokerusCuredIcon =
 {
-    .tileTag = TAG_MON_POKERUS_CURED_ICON,
+    .tileTag = TAG_POKERUS_CURED_ICON,
     .paletteTag = TAG_CATEGORY_ICONS,
     .oam = &sOamData_PokerusCuredIcon,
 };
@@ -1916,6 +1865,8 @@ void ShowPokemonSummaryScreen_SwSh(u8 mode, void *mons, u8 monIndex, u8 maxMonIn
 
     sMonSummaryScreen = AllocZeroed(sizeof(*sMonSummaryScreen));
     sMonSummaryScreen->mode = mode;
+    sHeldSlot = MOVE_SLOT_COUNT;
+    sHeldAnimId = INVALID_COMFY_ANIM;
     if (monIndex == PC_MON_CHOSEN)
     {
         sMonSummaryScreen->monList.boxMons = GetBoxedMonPtr(gSpecialVar_MonBoxId, 0);
@@ -1989,6 +1940,7 @@ void ShowSelectMovePokemonSummaryScreen_SwSh(struct Pokemon *mons, u8 monIndex, 
 
 static void MainCB2(void)
 {
+    AdvanceComfyAnimations();
     RunTasks();
     AnimateSprites();
     BuildOamBuffer();
@@ -2302,7 +2254,6 @@ static bool8 DecompressGraphics(void)
         sMonSummaryScreen->switchCounter++;
         break;
     case 10:
-        LoadCompressedSpriteSheet(&sSpriteSheet_MoveFrame);
         sMonSummaryScreen->switchCounter++;
         break;
     case 11:
@@ -3276,20 +3227,19 @@ static void Task_HandleInput_MoveSelect(u8 taskId)
 
     if (MenuHelpers_ShouldWaitForLinkRecv() != TRUE)
     {
-        if (JOY_NEW(DPAD_UP))
+        if (JOY_REPEAT(DPAD_UP))
         {
-            data[0] = 4;
+            data[0] = MAX_MON_MOVES - 1;
             ChangeSelectedMove(data, -1, &sMonSummaryScreen->firstMoveIndex);
         }
-        else if (JOY_NEW(DPAD_DOWN))
+        else if (JOY_REPEAT(DPAD_DOWN))
         {
-            data[0] = 4;
+            data[0] = MAX_MON_MOVES - 1;
             ChangeSelectedMove(data, 1, &sMonSummaryScreen->firstMoveIndex);
         }
         else if (JOY_NEW(A_BUTTON))
         {
-            if (sMonSummaryScreen->lockMovesFlag == TRUE
-             || (sMonSummaryScreen->newMove == MOVE_NONE && sMonSummaryScreen->firstMoveIndex == MAX_MON_MOVES))
+            if (sMonSummaryScreen->lockMovesFlag == TRUE)
             {
                 PlaySE(SE_SELECT);
                 CloseMoveSelectMode(taskId);
@@ -3368,27 +3318,46 @@ static void CloseMoveSelectMode(u8 taskId)
 
 static void SwitchToMovePositionSwitchMode(u8 taskId)
 {
-    sMonSummaryScreen->secondMoveIndex = sMonSummaryScreen->firstMoveIndex;
-    CreateMoveFrameSprite();
+    sHeldSlot = sMonSummaryScreen->firstMoveIndex;
+    sMonSummaryScreen->secondMoveIndex = sHeldSlot;
+    LiftMoveSlot(sHeldSlot);
     UpdateMoveSlotPalette();
-    gTasks[taskId].func = Task_HandleInput_MovePositionSwitch;
+    gTasks[taskId].func = Task_HandleInput_MoveSwitch;
 }
 
-static void Task_HandleInput_MovePositionSwitch(u8 taskId)
+static void Task_HandleInput_MoveSwitch(u8 taskId)
 {
     s16 *data = gTasks[taskId].data;
+    u8 slot = sHeldSlot;
+    u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_SLOT + (slot * MOVE_SLOT_SPRITES_COUNT)];
+    u8 typeIconId = sMonSummaryScreen->spriteIds[slot + SPRITE_ARR_ID_TYPE];
+    u8 i;
+
+    if (sHeldAnimId != INVALID_COMFY_ANIM)
+    {
+        s16 animY = ReadComfyAnimValueSmooth(&gComfyAnims[sHeldAnimId]);
+        for (i = 0; i < MOVE_SLOT_SPRITES_COUNT; i++)
+        {
+            if (spriteIds[i] != SPRITE_NONE)
+                gSprites[spriteIds[i]].y = animY;
+        }
+        if (typeIconId != SPRITE_NONE)
+            gSprites[typeIconId].y = animY;
+    }
 
     if (MenuHelpers_ShouldWaitForLinkRecv() != TRUE)
     {
-        if (JOY_NEW(DPAD_UP))
+        if (JOY_REPEAT(DPAD_UP))
         {
-            data[0] = 3;
-            ChangeSelectedMove(&data[0], -1, &sMonSummaryScreen->secondMoveIndex);
+            data[0] = MAX_MON_MOVES - 1;
+            ChangeSelectedMove(data, -1, &sMonSummaryScreen->secondMoveIndex);
+            AnimateLiftedSlotToTarget();
         }
-        else if (JOY_NEW(DPAD_DOWN))
+        else if (JOY_REPEAT(DPAD_DOWN))
         {
-            data[0] = 3;
-            ChangeSelectedMove(&data[0], 1, &sMonSummaryScreen->secondMoveIndex);
+            data[0] = MAX_MON_MOVES - 1;
+            ChangeSelectedMove(data, 1, &sMonSummaryScreen->secondMoveIndex);
+            AnimateLiftedSlotToTarget();
         }
         else if (JOY_NEW(A_BUTTON))
         {
@@ -3409,7 +3378,7 @@ static void ExitMovePositionSwitchMode(u8 taskId, bool8 swapMoves)
     enum Move move;
 
     PlaySE(SE_SELECT);
-    DestroyMoveFrameSprite();
+    DropMoveSlot();
 
     if (swapMoves == TRUE)
     {
@@ -3683,15 +3652,18 @@ static void Task_ShowEffectTilemap(u8 taskId)
         SetGpuReg(REG_OFFSET_MOSAIC, 0);
         ClearGpuRegBits(REG_OFFSET_BG1CNT, BGCNT_MOSAIC);
         PrintMoveDescription(sMonSummaryScreen->summary.moves[sMonSummaryScreen->firstMoveIndex]);
-        PrintNewMoveDetailsOrCancelText();
         SetNewMoveTypeIcon();
 
-        u8 i;
-        u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_SLOT + (4 * MOVE_SLOT_SPRITES_COUNT)];
-        for (i = 0; i < MOVE_SLOT_SPRITES_COUNT; i++)
+        if (sMonSummaryScreen->mode == SUMMARY_MODE_SELECT_MOVE)
         {
-            if (spriteIds[i] != MAX_SPRITES)
-                gSprites[spriteIds[i]].invisible = FALSE;
+            PrintNewMoveDetailsOrCancelText();
+            u8 i;
+            u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_SLOT + (4 * MOVE_SLOT_SPRITES_COUNT)];
+            for (i = 0; i < MOVE_SLOT_SPRITES_COUNT; i++)
+            {
+                if (spriteIds[i] != MAX_SPRITES)
+                    gSprites[spriteIds[i]].invisible = FALSE;
+            }
         }
         UpdateMoveSlotPalette();
 
@@ -6427,9 +6399,7 @@ static void DestroyMoveCursorSprite(void)
 
 static void SpriteCB_MoveCursor(struct Sprite *sprite)
 {
-    bool8 frameActive = (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_FRAME] != SPRITE_NONE);
-    u8 moveIndex = frameActive ? sMonSummaryScreen->secondMoveIndex : sMonSummaryScreen->firstMoveIndex;
-    s16 targetY = moveIndex * 18;
+    s16 targetY = sMonSummaryScreen->firstMoveIndex * 18;
     s16 diff = targetY - sprite->y2;
 
     if (diff != 0)
@@ -6441,28 +6411,99 @@ static void SpriteCB_MoveCursor(struct Sprite *sprite)
     }
 }
 
-static void CreateMoveFrameSprite(void)
+static void LiftMoveSlot(u8 slot)
 {
+    u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_SLOT + (slot * MOVE_SLOT_SPRITES_COUNT)];
+    s16 liftedY = 36 + slot * 18 - 8;
+    u8 typeIconId = sMonSummaryScreen->spriteIds[slot + SPRITE_ARR_ID_TYPE];
+    u8 cursorId = sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_CURSOR];
+    struct ComfyAnimEasingConfig config;
     u8 i;
-    u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_FRAME];
 
-    if (sMonSummaryScreen->currPageIndex == PSS_PAGE_BATTLE_MOVES
-        || sMonSummaryScreen->currPageIndex == PSS_PAGE_CONTEST_MOVES)
+    for (i = 0; i < MOVE_SLOT_SPRITES_COUNT; i++)
     {
-        for (i = 0; i < MOVE_FRAME_SPRITES_COUNT; i++)
+        if (spriteIds[i] != SPRITE_NONE)
         {
-            spriteIds[i] = CreateSprite(&sMoveFrameSpriteTemplate, i * 16 + 17, 43, 1);
-            StartSpriteAnim(&gSprites[spriteIds[i]], sMoveFrameAnims[i]);
-            gSprites[spriteIds[i]].y2 = sMonSummaryScreen->firstMoveIndex * 18;
+            struct Sprite *sprite = &gSprites[spriteIds[i]];
+            sprite->x += 4;
+            sprite->y = liftedY;
+            sprite->oam.priority = 0;
         }
     }
+
+    if (typeIconId != SPRITE_NONE)
+    {
+        struct Sprite *typeSprite = &gSprites[typeIconId];
+        typeSprite->x += 4;
+        typeSprite->y = liftedY;
+        typeSprite->oam.priority = 0;
+    }
+
+    if (cursorId != SPRITE_NONE)
+        gSprites[cursorId].invisible = TRUE;
+
+    InitComfyAnimConfig_Easing(&config);
+    config.from = Q_24_8(liftedY);
+    config.to = Q_24_8(liftedY);
+    config.durationFrames = 1;
+    config.easingFunc = ComfyAnimEasing_EaseOutCubic;
+    sHeldAnimId = CreateComfyAnim_Easing(&config);
 }
 
-static void DestroyMoveFrameSprite(void)
+static void DropMoveSlot(void)
 {
+    u8 slot = sHeldSlot;
+    u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_SLOT + (slot * MOVE_SLOT_SPRITES_COUNT)];
+    s16 homeY = 36 + slot * 18;
+    u8 typeIconId = sMonSummaryScreen->spriteIds[slot + SPRITE_ARR_ID_TYPE];
+    u8 cursorId = sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_CURSOR];
     u8 i;
-    for (i = 0; i < MOVE_FRAME_SPRITES_COUNT; i++)
-        DestroySpriteInArray(SPRITE_ARR_ID_MOVE_FRAME + i);
+
+    for (i = 0; i < MOVE_SLOT_SPRITES_COUNT; i++)
+    {
+        if (spriteIds[i] != SPRITE_NONE)
+        {
+            struct Sprite *sprite = &gSprites[spriteIds[i]];
+            sprite->x -= 4;
+            sprite->y = homeY;
+            sprite->oam.priority = 1;
+        }
+    }
+
+    if (typeIconId != SPRITE_NONE)
+    {
+        struct Sprite *typeSprite = &gSprites[typeIconId];
+        typeSprite->x -= 4;
+        typeSprite->y = homeY;
+        typeSprite->oam.priority = 1;
+    }
+
+    if (cursorId != SPRITE_NONE)
+        gSprites[cursorId].invisible = FALSE;
+
+    if (sHeldAnimId != INVALID_COMFY_ANIM)
+    {
+        ReleaseComfyAnim(sHeldAnimId);
+        sHeldAnimId = INVALID_COMFY_ANIM;
+    }
+
+    sHeldSlot = MOVE_SLOT_COUNT;
+}
+
+static void AnimateLiftedSlotToTarget(void)
+{
+    struct ComfyAnimEasingConfig config;
+    s16 targetY = 36 + sMonSummaryScreen->secondMoveIndex * 18 - 8;
+
+    if (sHeldAnimId == INVALID_COMFY_ANIM)
+        return;
+
+    InitComfyAnimConfig_Easing(&config);
+    config.from = gComfyAnims[sHeldAnimId].position;
+    config.to = Q_24_8(targetY);
+    config.durationFrames = 8;
+    config.easingFunc = ComfyAnimEasing_EaseOutCubic;
+    InitComfyAnim_Easing(&config, &gComfyAnims[sHeldAnimId]);
 }
 
 static void CreateMoveSlotSprites(void)
@@ -6530,14 +6571,18 @@ static void UpdateMoveSlotPalette(void)
     u8 mainPalSlot = IndexOfSpritePaletteTag(TAG_MOVE_SLOT_MAIN);
     u8 focusPalSlot = IndexOfSpritePaletteTag(TAG_MOVE_SLOT_FOCUS);
     bool8 cursorActive = (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_CURSOR] != SPRITE_NONE);
-    bool8 frameActive = (sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_FRAME] != SPRITE_NONE);
+    bool8 switchModeActive = (sHeldSlot != MOVE_SLOT_COUNT);
 
     for (slot = 0; slot < MOVE_SLOT_COUNT; slot++)
     {
         u8 *spriteIds = &sMonSummaryScreen->spriteIds[SPRITE_ARR_ID_MOVE_SLOT + (slot * MOVE_SLOT_SPRITES_COUNT)];
-        bool8 isHighlighted = frameActive
-            ? (slot == sMonSummaryScreen->secondMoveIndex)
-            : (cursorActive && slot == sMonSummaryScreen->firstMoveIndex);
+        bool8 isHighlighted;
+
+        if (switchModeActive)
+            isHighlighted = (slot == sMonSummaryScreen->secondMoveIndex && slot != sHeldSlot);
+        else
+            isHighlighted = (cursorActive && slot == sMonSummaryScreen->firstMoveIndex);
+
         u8 paletteNum = isHighlighted ? focusPalSlot : mainPalSlot;
 
         for (i = 0; i < MOVE_SLOT_SPRITES_COUNT; i++)
