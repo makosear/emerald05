@@ -231,7 +231,7 @@ PetalburgCity_Gym_EventScript_Norman::
 # 116 "data/maps/PetalburgCity_Gym/scripts.pory"
 	closemessage
 # 117 "data/maps/PetalburgCity_Gym/scripts.pory"
-s	msgbox PetalburgCity_Gym_Text_DadYoureHereWithYourPokemon2, MSGBOX_YESNO
+	msgbox PetalburgCity_Gym_Text_DadYoureHereWithYourPokemon2, MSGBOX_YESNO
 # 118 "data/maps/PetalburgCity_Gym/scripts.pory"
 	goto_if_eq VAR_RESULT, YES, PetalburgCity_Gym_EventScript_NormanSayYes
 # 119 "data/maps/PetalburgCity_Gym/scripts.pory"

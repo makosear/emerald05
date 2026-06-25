@@ -3,6 +3,7 @@
 #include "battle_pyramid_bag.h"
 #include "item_menu.h"
 
+
 ALIGNED(4)
 const u8 gText_ExpandedPlaceholder_Empty[] = _("");
 const u8 gText_ExpandedPlaceholder_Kun[] = _("");
