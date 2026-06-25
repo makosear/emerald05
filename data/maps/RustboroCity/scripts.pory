@@ -1290,3 +1290,13 @@ RustboroCity_Text_YouCanHave2On2Battle:
 	.string "Don't you think it'd be cool if you\n"
 	.string "could beat two TRAINERS by yourself?$"
 `
+script RustboroCity_EventScript_Wally {
+	lock
+	faceplayer
+	msgbox (format("Ah, {PLAYER}. It's good to meet you again."), MSGBOX_NPC)
+	msgbox (format("Do you remember me?"), MSGBOX_NPC)
+	msgbox (format("...A-anyways, my family and I stopped here on our way to VERDANTURF."), MSGBOX_NPC)
+	msgbox (format("My parents are running some errands, so my mom said that it'd be good to take a course at the POKéMON school meanwhile, because I got my first partner."), MSGBOX_NPC)
+	msgbox (format("I'll go there soon, if you want to come by too."), MSGBOX_NPC)
+	releaseall
+}

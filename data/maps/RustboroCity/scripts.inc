@@ -2580,3 +2580,50 @@ RustboroCity_Text_YouCanHave2On2Battle:
 	.string "Don't you think it'd be cool if you\n"
 # 1291 "data/maps/RustboroCity/scripts.pory"
 	.string "could beat two TRAINERS by yourself?$"
+
+RustboroCity_EventScript_Wally::
+# 1294 "data/maps/RustboroCity/scripts.pory"
+	lock
+# 1295 "data/maps/RustboroCity/scripts.pory"
+	faceplayer
+# 1296 "data/maps/RustboroCity/scripts.pory"
+	msgbox RustboroCity_EventScript_Wally_Text_0, MSGBOX_NPC
+# 1297 "data/maps/RustboroCity/scripts.pory"
+	msgbox RustboroCity_EventScript_Wally_Text_1, MSGBOX_NPC
+# 1298 "data/maps/RustboroCity/scripts.pory"
+	msgbox RustboroCity_EventScript_Wally_Text_2, MSGBOX_NPC
+# 1299 "data/maps/RustboroCity/scripts.pory"
+	msgbox RustboroCity_EventScript_Wally_Text_3, MSGBOX_NPC
+# 1300 "data/maps/RustboroCity/scripts.pory"
+	msgbox RustboroCity_EventScript_Wally_Text_4, MSGBOX_NPC
+# 1301 "data/maps/RustboroCity/scripts.pory"
+	releaseall
+	return
+
+
+RustboroCity_EventScript_Wally_Text_0:
+# 1296 "data/maps/RustboroCity/scripts.pory"
+	.string "Ah, {PLAYER}. It's good to meet you\n"
+	.string "again.$"
+
+RustboroCity_EventScript_Wally_Text_1:
+# 1297 "data/maps/RustboroCity/scripts.pory"
+	.string "Do you remember me?$"
+
+RustboroCity_EventScript_Wally_Text_2:
+# 1298 "data/maps/RustboroCity/scripts.pory"
+	.string "...A-anyways, my family and I stopped\n"
+	.string "here on our way to VERDANTURF.$"
+
+RustboroCity_EventScript_Wally_Text_3:
+# 1299 "data/maps/RustboroCity/scripts.pory"
+	.string "My parents are running some errands, so\n"
+	.string "my mom said that it'd be good to take a\l"
+	.string "course at the POKéMON school\l"
+	.string "meanwhile, because I got my first\l"
+	.string "partner.$"
+
+RustboroCity_EventScript_Wally_Text_4:
+# 1300 "data/maps/RustboroCity/scripts.pory"
+	.string "I'll go there soon, if you want to come\n"
+	.string "by too.$"
