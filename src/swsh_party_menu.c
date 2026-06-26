@@ -89,6 +89,18 @@
 
 #if SWSH_PARTY_MENU
 
+static EWRAM_DATA u8 sPartySelectionLimit = 0; // Stores the number of Pokemon to select for battles (0 = use facility default)
+
+void SetPartySelectionLimit(u8 limit)
+{
+    sPartySelectionLimit = limit;
+}
+
+void ClearPartySelectionLimit(void)
+{
+    sPartySelectionLimit = 0;
+}
+
 enum {
     MENU_SUMMARY,
     MENU_SWITCH,
