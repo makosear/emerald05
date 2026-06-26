@@ -426,6 +426,8 @@ generated: $(AUTO_GEN_TARGETS)
 %.s:   ;
 %.png: ;
 %.pal: ;
+%.aif: ;
+%.pory: ;
 %.wav: ;
 %.pory: ;
 
@@ -438,7 +440,7 @@ generated: $(AUTO_GEN_TARGETS)
 %.smolTM:   %      ; $(SMOLTM) $< $@
 %.fastSmol: %      ; $(SMOL) -w $< $@ false false false
 %.smol:     %      ; $(SMOL) -w $< $@
-%.rl:     %      ; $(GFX) $< $@
+%.rl:       %      ; $(GFX) $< $@
 data/%.inc: data/%.pory; $(SCRIPT) -i $< -o $@ -fc tools/poryscript/font_config.json -cc tools/poryscript/command_config.json
 
 clean-teachables_intermediates:
