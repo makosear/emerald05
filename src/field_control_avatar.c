@@ -837,9 +837,12 @@ static bool8 TryStartStepCountScript(u16 metatileBehavior)
         ScriptContext_SetupScript(SSTidalCorridor_EventScript_ReachedStepCount);
         return TRUE;
     }
+    #if MATCH_CALL_ENABLED
     if (TryStartMatchCall())
         return TRUE;
+    #endif
     return FALSE;
+    
 }
 
 static void UNUSED ClearFriendshipStepCounter(void)
