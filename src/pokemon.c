@@ -5670,7 +5670,8 @@ static void Task_AnimateAfterDelay(u8 taskId)
 
 #define tIsShadow data[4]
 
-static EWRAM_DATA u8 sShadowAnimDelayTaskId = 0;
+static EWRAM_INIT u8 sShadowAnimDelayTaskId = TASK_NONE;
+
 
 static void Task_PokemonSummaryAnimateAfterDelay(u8 taskId)
 {
