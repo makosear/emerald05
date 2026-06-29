@@ -1,5 +1,5 @@
 const RUSTBORO_SCHOOL_WALLY_ID = 8
-const RUSTBORO_SCHOOL_PROFESSOR_ID = 6
+const RUSTBORO_SCHOOL_TEACHER_ID = 6
 
 mapscripts RustboroCity_PokemonSchool_MapScripts {
 	MAP_SCRIPT_ON_TRANSITION {
@@ -24,7 +24,7 @@ script RustboroCity_PokemonSchool_EventScript_WallyEncounter {
 	waitmovement(0)
 	msgbox(format("WALLY: U-umm, excuse me. I just got my first POKéMON and I wanted to learn more about taking care of it..."), MSGBOX_DEFAULT)
 	closemessage
-	msgbox(format("PROFESSOR: You're just in time. Please take a seat, you two."))
+	msgbox(format("TEACHER: You're just in time. Please take a seat, you two."))
 	closemessage
 	fadescreen(FADE_TO_BLACK)
 	setobjectxy(LOCALID_PLAYER, 1, 8)
@@ -38,7 +38,7 @@ script RustboroCity_PokemonSchool_EventScript_WallyEncounter {
 	waitmovement(0)
 	fadescreen(FADE_FROM_BLACK)
 
-	msgbox(format("PROFESSOR: And that's all for today, everyone. You should be able to understand how to strengthen your bond with POKéMON!"), MSGBOX_DEFAULT)
+	msgbox(format("TEACHER: And that's all for today, everyone. You should be able to understand how to strengthen your bond with POKéMON!"), MSGBOX_DEFAULT)
 	closemessage
 	msgbox(format("WALLY: That... was a very useful class."))
 	closemessage
@@ -46,20 +46,20 @@ script RustboroCity_PokemonSchool_EventScript_WallyEncounter {
 	waitmovement(0)
 	msgbox(format("WALLY: There's so much more to this than I thought. I want to learn more and more and more... and be able to connect with RALTS."), MSGBOX_DEFAULT)
 	closemessage
-	applymovement(RUSTBORO_SCHOOL_PROFESSOR_ID, moves(walk_left * 4, walk_down))
+	applymovement(RUSTBORO_SCHOOL_TEACHER_ID, moves(walk_left * 4, walk_down))
 	waitmovement(0)
-	msgbox(format("PROFESSOR: That objective is admirable! You have the spirit of a POKéMON trainer."), MSGBOX_DEFAULT)
+	msgbox(format("TEACHER: That objective is admirable! You have the spirit of a POKéMON trainer."), MSGBOX_DEFAULT)
 	applymovement(RUSTBORO_SCHOOL_WALLY_ID, moves(face_up))
 	waitmovement(0)
 	msgbox(format("WALLY: W-what...? No, I'm not a trainer... I've never even had a battle before."), MSGBOX_DEFAULT)
-	msgbox(format("PROFESSOR: Hm. Well, that can be ammended right now. Why don't you two have a battle and see how you do?"), MSGBOX_DEFAULT)
+	msgbox(format("TEACHER: Hm. Well, that can be ammended right now. Why don't you two have a battle and see how you do?"), MSGBOX_DEFAULT)
 	msgbox(format("WALLY: A battle? I-I don't know if I'm ready for that... What do you think, {PLAYER}?"), MSGBOX_YESNO)
 	 while (var(VAR_RESULT) != 1) {
 		closemessage
-        msgbox(format("PROFESSOR: Wrong answer! You should have a battle."), MSGBOX_YESNO)
+        msgbox(format("TEACHER: Wrong answer! You should have a battle."), MSGBOX_YESNO)
     }
 
-	msgbox(format("PROFESSOR: Good! First, let me heal your POKéMON."))
+	msgbox(format("TEACHER: Good! First, let me heal your POKéMON."))
 	special(HealPlayerParty)
 	setrespawn(HEAL_LOCATION_RUSTBORO_CITY)
 	applymovement(RUSTBORO_SCHOOL_WALLY_ID, moves(walk_left, walk_down * 2, face_right))
@@ -75,7 +75,7 @@ script RustboroCity_PokemonSchool_EventScript_WallyEncounter {
 
 script RustboroCity_PokemonSchool_EventScript_WallyPostBattle {
 	msgbox(format("WALLY: ...I know I lost, b-but... I feel like I gained something way more important!"))
-	msgbox(format("WALLY: Thank you very much, professor! Now, I have to go... my parents must be wondering where I am. See you, {PLAYER}!"))
+	msgbox(format("WALLY: Thank you very much, teacher! Now, I have to go... my parents must be wondering where I am. See you, {PLAYER}!"))
 	applymovement(RUSTBORO_SCHOOL_WALLY_ID, moves(walk_down * 2, walk_right * 5, face_down))
 	waitmovement(0)
 	playse(SE_EXIT)
@@ -84,7 +84,7 @@ script RustboroCity_PokemonSchool_EventScript_WallyPostBattle {
 	setmetatile(6, 10, 0x007, FALSE)
 	
 	fadescreen(FADE_TO_BLACK)
-	setobjectxy(RUSTBORO_SCHOOL_PROFESSOR_ID, 5, 3)
+	setobjectxy(RUSTBORO_SCHOOL_TEACHER_ID, 5, 3)
 	setvar(VAR_RUSTBORO_CITY_SCHOOL_STATE, 3)
 	fadescreen(FADE_FROM_BLACK)
 	releaseall
@@ -175,6 +175,16 @@ script RustboroCity_PokemonSchool_EventScript_StudentNotebook {
 script RustboroCity_PokemonSchool_EventScript_Teacher {
     lock
     faceplayer
+
+    if (flag(FLAG_RECEIVED_SCHOOL_EEVEE) && flag(FLAG_RECEIVED_QUICK_CLAW)) {
+        msgbox(format("TEACHER: Take good care of it!"), MSGBOX_DEFAULT)
+        release
+        end
+    }
+
+    if (flag(FLAG_BADGE03_GET) && !flag(FLAG_RECEIVED_SCHOOL_EEVEE)) {
+        goto(RustboroCity_PokemonSchool_EventScript_GiveEevee)
+    }
     
     if (flag(FLAG_RECEIVED_QUICK_CLAW)) {
         msgbox(format("A POKéMON holding the QUICK CLAW will occasionally speed up and get to move before its opponent.\pThere are many other items that are meant to be held by POKéMON.\pJust those alone will give you many topics to study!"), MSGBOX_DEFAULT)
@@ -186,46 +196,14 @@ script RustboroCity_PokemonSchool_EventScript_Teacher {
     }
 
     if (var(VAR_FACING) == DIR_EAST) {
-        applymovement(VAR_LAST_TALKED, moves(
-            walk_right * 2
-            walk_down * 2
-            walk_left * 2
-            walk_in_place_faster_down
-            delay_16 * 3
-            walk_down
-            walk_in_place_faster_left
-            delay_16 * 2
-            walk_right
-            delay_16 * 2
-            delay_8
-            walk_up
-            walk_right
-            walk_up * 2
-            walk_left * 2
-        ))
+        applymovement(VAR_LAST_TALKED, RustboroCity_PokemonSchool_Movement_TeacherCheckEast)
         waitmovement(0)
     } elif (var(VAR_FACING) == DIR_WEST) {
-        applymovement(VAR_LAST_TALKED, moves(
-            walk_left
-            walk_down * 2
-            walk_right
-            walk_in_place_faster_down
-            delay_16 * 3
-            walk_down
-            walk_in_place_faster_left
-            delay_16 * 2
-            walk_right
-            delay_16 * 2
-            delay_8
-            walk_up
-            walk_left * 2
-            walk_up * 2
-            walk_right
-        ))
+        applymovement(VAR_LAST_TALKED, RustboroCity_PokemonSchool_Movement_TeacherCheckWest)
         waitmovement(0)
     }
 
-    msgbox(format("Students who don't study get a little taste of my QUICK CLAW.\pWhether or not you are a good student will be evident from the way you use this item."), MSGBOX_DEFAULT)
+    msgbox(format("TEACHER: Students who don't study get a little taste of my QUICK CLAW.\pWhether or not you are a good student will be evident from the way you use this item."), MSGBOX_DEFAULT)
     giveitem(ITEM_QUICK_CLAW)
     
     if (var(VAR_RESULT) == 0) {
@@ -238,6 +216,84 @@ script RustboroCity_PokemonSchool_EventScript_Teacher {
     setflag(FLAG_RECEIVED_QUICK_CLAW)
     release
     end
+}
+
+script RustboroCity_PokemonSchool_EventScript_GiveEevee {
+    msgbox(format("TEACHER: Ah, {PLAYER}! I see you have obtained three GYM BADGES. You have proven yourself to be a capable and caring TRAINER.\pI have a special POKéMON here that I believe would thrive under your guidance."), MSGBOX_DEFAULT)
+    
+    setvar(VAR_TEMP_TRANSFERRED_SPECIES, SPECIES_EEVEE)
+    givemon(SPECIES_EEVEE, 20, ITEM_NONE)
+    
+    if (var(VAR_RESULT) == MON_GIVEN_TO_PARTY) {
+        call(RustboroCity_PokemonSchool_EventScript_ReceiveEeveeFanfare)
+        msgbox(format("Would you like to give a nickname to your EEVEE?"), MSGBOX_YESNO)
+        if (var(VAR_RESULT) == YES) {
+            call(Common_EventScript_GetGiftMonPartySlot)
+            call(Common_EventScript_NameReceivedPartyMon)
+        }
+    } 
+    elif (var(VAR_RESULT) == MON_GIVEN_TO_PC) {
+        call(RustboroCity_PokemonSchool_EventScript_ReceiveEeveeFanfare)
+        msgbox(format("Would you like to give a nickname to your EEVEE?"), MSGBOX_YESNO)
+        if (var(VAR_RESULT) == YES) {
+            call(Common_EventScript_NameReceivedBoxMon)
+        }
+        msgbox(format("EEVEE was transferred to the PC."), MSGBOX_DEFAULT)
+    } 
+    else {
+        msgbox(format("TEACHER: Oh, you don't have enough room to take this POKéMON right now. Please make some space."), MSGBOX_DEFAULT)
+        release
+        end
+    }
+
+    msgbox(format("TEACHER: Take good care of it!"), MSGBOX_DEFAULT)
+    setflag(FLAG_RECEIVED_SCHOOL_EEVEE)
+    release
+    end
+}
+
+script RustboroCity_PokemonSchool_EventScript_ReceiveEeveeFanfare {
+    playfanfare(MUS_OBTAIN_ITEM)
+    msgbox(format("{PLAYER} received an EEVEE!"), MSGBOX_DEFAULT)
+    waitmessage
+    waitfanfare
+    return
+}
+
+movement RustboroCity_PokemonSchool_Movement_TeacherCheckEast {
+    walk_right * 2
+    walk_down * 2
+    walk_left * 2
+    walk_in_place_faster_down
+    delay_16 * 3
+    walk_down
+    walk_in_place_faster_left
+    delay_16 * 2
+    walk_right
+    delay_16 * 2
+    delay_8
+    walk_up
+    walk_right
+    walk_up * 2
+    walk_left * 2
+}
+
+movement RustboroCity_PokemonSchool_Movement_TeacherCheckWest {
+    walk_left
+    walk_down * 2
+    walk_right
+    walk_in_place_faster_down
+    delay_16 * 3
+    walk_down
+    walk_in_place_faster_left
+    delay_16 * 2
+    walk_right
+    delay_16 * 2
+    delay_8
+    walk_up
+    walk_left * 2
+    walk_up * 2
+    walk_right
 }
 
 script RustboroCity_PokemonSchool_EventScript_Scott {
