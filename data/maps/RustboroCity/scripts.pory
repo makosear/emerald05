@@ -1290,6 +1290,8 @@ RustboroCity_Text_YouCanHave2On2Battle:
 	.string "Don't you think it'd be cool if you\n"
 	.string "could beat two TRAINERS by yourself?$"
 `
+const RUSTBORO_WALLY_ID = 17
+
 script RustboroCity_EventScript_Wally {
 	lock
 	faceplayer
@@ -1299,4 +1301,240 @@ script RustboroCity_EventScript_Wally {
 	msgbox (format("My parents are running some errands, so my mom said that it'd be good to take a course at the POKéMON school meanwhile, because I got my first partner."), MSGBOX_NPC)
 	msgbox (format("I'll go there soon, if you want to come by too."), MSGBOX_NPC)
 	releaseall
+}
+
+script RustboroCity_EventScript_WallyTrigger {
+    lockall
+    call(RustboroCity_EventScript_PlayRivalMusic)
+    //setflag(FLAG_MET_WALLY_RUSTBORO)
+    setobjectxy(RUSTBORO_WALLY_ID, 16, 50)
+    applymovement(RUSTBORO_WALLY_ID, Common_Movement_WalkInPlaceFasterDown)
+    waitmovement(0)
+    playse(SE_PIN)
+    applymovement(RUSTBORO_WALLY_ID, Common_Movement_ExclamationMark)
+    waitmovement(0)
+    applymovement(RUSTBORO_WALLY_ID, Common_Movement_Delay48)
+    waitmovement(0)
+
+    // Dynamically choose the movement pointer based on which trigger was stepped on
+    switch (var(VAR_TEMP_1)) {
+        case 0: applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_RivalApproachPlayer0)
+        case 1: applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_RivalApproachPlayer1)
+        case 2: applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_RivalApproachPlayer2)
+        case 3: applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_RivalApproachPlayer3)
+        case 4: applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_RivalApproachPlayer4)
+        case 5: applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_RivalApproachPlayer5)
+        case 6: applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_RivalApproachPlayer6)
+        case 7: applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_RivalApproachPlayer7)
+    }
+    waitmovement(0)
+
+    applymovement(LOCALID_PLAYER, Common_Movement_WalkInPlaceFasterUp)
+    waitmovement(0)
+    goto(RustboroCity_EventScript_WallyEncounter)
+}
+
+script RustboroCity_EventScript_WallyEncounter {
+    
+    msgbox(format("Ah, {PLAYER}. It's good to meet you again.\pDo you remember me?\p…A-anyways, my family and I stopped here on our way to VERDANTURF.\pMy parents are running some errands, so my mom said it'd be good to take a course at the POKéMON school in the meantime, considering I just got my first partner.\pLet's go there together!"), MSGBOX_DEFAULT)
+    closemessage
+
+    // Phase 1: Adapt to the specific trigger.
+    // Move Wally back to (16, 50) and the Player to (16, 51) so they are in a line.
+    switch (var(VAR_TEMP_1)) {
+        case 0:
+            applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_WallyReturnToStart0)
+            applymovement(LOCALID_PLAYER, RustboroCity_Movement_PlayerReturnToStart0)
+        case 1:
+            applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_WallyReturnToStart1)
+            applymovement(LOCALID_PLAYER, RustboroCity_Movement_PlayerReturnToStart1)
+		case 2:
+			applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_WallyReturnToStart2)
+			applymovement(LOCALID_PLAYER, RustboroCity_Movement_PlayerReturnToStart2)
+		case 3:
+			applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_WallyReturnToStart3)
+			applymovement(LOCALID_PLAYER, RustboroCity_Movement_PlayerReturnToStart3)
+		case 4:
+			applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_WallyReturnToStart4)
+			applymovement(LOCALID_PLAYER, RustboroCity_Movement_PlayerReturnToStart4)
+		case 5:
+			applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_WallyReturnToStart5)
+			applymovement(LOCALID_PLAYER, RustboroCity_Movement_PlayerReturnToStart5)
+		case 6:
+			applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_WallyReturnToStart6)
+			applymovement(LOCALID_PLAYER, RustboroCity_Movement_PlayerReturnToStart6)
+		case 7:
+			applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_WallyReturnToStart7)
+			applymovement(LOCALID_PLAYER, RustboroCity_Movement_PlayerReturnToStart7)		
+    }
+    waitmovement(0)
+
+    applymovement(RUSTBORO_WALLY_ID, RustboroCity_Movement_WallyToSchool)
+    applymovement(LOCALID_PLAYER, RustboroCity_Movement_PlayerToSchool)
+    waitmovement(0)
+
+    removeobject(RUSTBORO_WALLY_ID)
+	playse(SE_EXIT)
+	setflag(FLAG_HIDE_RUSTBORO_WALLY)
+	applymovement(LOCALID_PLAYER, moves(walk_up))
+    waitmovement(0)
+
+	setvar(VAR_RUSTBORO_CITY_SCHOOL_STATE, 1) 
+    warp(MAP_RUSTBORO_CITY_POKEMON_SCHOOL, 5, 10) 
+    waitstate
+    releaseall
+    end
+}
+
+// --- CONVERGED MOVEMENTS ---
+
+movement RustboroCity_Movement_WallyToSchool {
+    walk_up * 2       
+    walk_right * 4    
+    walk_up * 12      
+    walk_right * 7    
+    walk_up * 1       
+}
+
+movement RustboroCity_Movement_PlayerToSchool {
+    walk_up * 3       // Catches up to the path
+    walk_right * 4    
+    walk_up * 12      
+    walk_right * 7
+	face_up
+}
+
+
+
+script RustboroCity_EventScript_WallyTrigger0 {
+	setvar(VAR_TEMP_1, 0)
+	call(RustboroCity_EventScript_WallyTrigger)
+	end
+}
+
+script RustboroCity_EventScript_WallyTrigger1 {
+	setvar(VAR_TEMP_1, 1)
+	call(RustboroCity_EventScript_WallyTrigger)
+	end
+}
+
+script RustboroCity_EventScript_WallyTrigger2 {
+	setvar(VAR_TEMP_1, 2)
+	call(RustboroCity_EventScript_WallyTrigger)
+	end
+}
+
+script RustboroCity_EventScript_WallyTrigger3 {
+	setvar(VAR_TEMP_1, 3)
+	call(RustboroCity_EventScript_WallyTrigger)
+	end
+}
+
+script RustboroCity_EventScript_WallyTrigger4 {
+	setvar(VAR_TEMP_1, 4)
+	call(RustboroCity_EventScript_WallyTrigger)
+	end
+}
+
+script RustboroCity_EventScript_WallyTrigger5 {
+	setvar(VAR_TEMP_1, 5)
+	call(RustboroCity_EventScript_WallyTrigger)
+	end
+}
+
+script RustboroCity_EventScript_WallyTrigger6 {
+	setvar(VAR_TEMP_1, 6)
+	call(RustboroCity_EventScript_WallyTrigger)
+	end
+}
+
+script RustboroCity_EventScript_WallyTrigger7 {
+	setvar(VAR_TEMP_1, 7)
+	call(RustboroCity_EventScript_WallyTrigger)
+	end
+}
+
+movement RustboroCity_Movement_WallyReturnToStart0 {
+    walk_up
+    walk_right * 4
+    walk_up
+}
+
+movement RustboroCity_Movement_WallyReturnToStart1 {
+    walk_up
+    walk_right * 3
+    walk_up
+}
+
+movement RustboroCity_Movement_WallyReturnToStart2 {
+    walk_up
+    walk_right * 2
+    walk_up
+}
+
+movement RustboroCity_Movement_WallyReturnToStart3 {
+    walk_up
+    walk_right
+    walk_up
+}
+
+movement RustboroCity_Movement_WallyReturnToStart4 {
+    walk_up * 2
+}
+
+movement RustboroCity_Movement_WallyReturnToStart5 {
+    walk_up
+    walk_left
+    walk_up
+}
+
+movement RustboroCity_Movement_WallyReturnToStart6 {
+    walk_up
+    walk_left * 2
+    walk_up
+}
+
+movement RustboroCity_Movement_WallyReturnToStart7 {
+    walk_up
+    walk_left * 3
+    walk_up
+}
+
+movement RustboroCity_Movement_PlayerReturnToStart0 {
+    walk_up * 2
+    walk_right * 4
+}
+
+movement RustboroCity_Movement_PlayerReturnToStart1 {
+    walk_up * 2
+    walk_right * 3
+}
+
+movement RustboroCity_Movement_PlayerReturnToStart2 {
+    walk_up * 2
+    walk_right * 2
+}
+
+movement RustboroCity_Movement_PlayerReturnToStart3 {
+    walk_up * 2
+    walk_right
+}
+
+movement RustboroCity_Movement_PlayerReturnToStart4 {
+    walk_up * 2
+}
+
+movement RustboroCity_Movement_PlayerReturnToStart5 {
+    walk_up * 2
+    walk_left
+}
+
+movement RustboroCity_Movement_PlayerReturnToStart6 {
+    walk_up * 2
+    walk_left * 2
+}
+
+movement RustboroCity_Movement_PlayerReturnToStart7 {
+    walk_up * 2
+    walk_left * 3
 }
