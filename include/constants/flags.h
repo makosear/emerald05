@@ -1225,7 +1225,7 @@
 #define FLAG_MET_WALLY_RUSTBORO                                     0x493 
 #define FLAG_HIDE_RUSTBORO_WALLY                                    0x494 
 #define FLAG_RECEIVED_SCHOOL_EEVEE                                  0x495 
-#define FLAG_UNUSED_0x496                                           0x496 // Unused Flag
+#define FLAG_HIDE_RUSTBORO_CITY_POKEMON_SCHOOL_WALLY                0x496
 #define FLAG_UNUSED_0x497                                           0x497 // Unused Flag
 #define FLAG_UNUSED_0x498                                           0x498 // Unused Flag
 #define FLAG_UNUSED_0x499                                           0x499 // Unused Flag

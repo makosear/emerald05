@@ -8,9 +8,6 @@ mapscripts RustboroCity_PokemonSchool_MapScripts {
 			setmetatile(6, 10, 0x207, FALSE)
 		}
 
-		if (var(VAR_RUSTBORO_CITY_SCHOOL_STATE) >= 3) {
-			removeobject(RUSTBORO_SCHOOL_WALLY_ID)
-		}
 	}
     MAP_SCRIPT_ON_FRAME_TABLE [
         VAR_RUSTBORO_CITY_SCHOOL_STATE, 1: RustboroCity_PokemonSchool_EventScript_WallyEncounter
@@ -86,6 +83,7 @@ script RustboroCity_PokemonSchool_EventScript_WallyPostBattle {
 	fadescreen(FADE_TO_BLACK)
 	setobjectxy(RUSTBORO_SCHOOL_TEACHER_ID, 5, 3)
 	setvar(VAR_RUSTBORO_CITY_SCHOOL_STATE, 3)
+	setflag(FLAG_HIDE_RUSTBORO_CITY_POKEMON_SCHOOL_WALLY)
 	fadescreen(FADE_FROM_BLACK)
 	releaseall
 	end
